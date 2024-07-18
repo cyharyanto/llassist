@@ -74,7 +74,7 @@ Return the fixed JSON in the following format:
 
     public async Task<KeySemantics> ExtractKeySemantics(string content)
     {
-        var kernel = _llmService.OllamaLLaMA3ChatCompletion();
+        var kernel = _llmService.OllamaGemma2ChatCompletion();
 
         var skPrompt = """"
 Semantically analyze the content to extract its topics, entities, and keywords.
@@ -105,7 +105,7 @@ Return the result in the following JSON format:
 
     public async Task<Relevance> EstimateRevelance(string content, string contentType, string question)
     {
-        var kernel = _llmService.OllamaLLaMA3ChatCompletion();
+        var kernel = _llmService.OllamaGemma2ChatCompletion();
 
         var skPrompt = """"
 Analyze the following {{$contentType}}:
