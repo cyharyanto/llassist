@@ -19,7 +19,30 @@ class Program
         string researchQuestionsFile = args[1]; // The second argument is the path to the research questions file
 
         // Read research questions from the file
-        var researchQuestions = File.ReadAllLines(researchQuestionsFile);
+        var researchQuestionsJson = await File.ReadAllTextAsync(researchQuestionsFile);
+        var researchQuestions = JsonSerializer.Deserialize<ResearchQuestions>(researchQuestionsJson);
+
+        if (researchQuestions == null)
+        {
+            Console.WriteLine("Failed to deserialize research questions.");
+            return;
+        }
+
+        // Output the parsed research questions
+        Console.WriteLine("Parsed Research Questions:");
+        foreach (var definition in researchQuestions.Definitions)
+        {
+            Console.WriteLine($"Definition: {definition}");
+        }
+
+        foreach (var question in researchQuestions.Questions)
+        {
+            Console.WriteLine($"Question: {question.Text}");
+            foreach (var definition in question.Definitions)
+            {
+                Console.WriteLine($"\tDefinition: {definition}");
+            }
+        }
 
         string baseOutputFile = Path.GetFileNameWithoutExtension(inputFile);
         string jsonOutputFile = $"{baseOutputFile}-result.json";
@@ -35,7 +58,7 @@ class Program
         var nlpService = new NLPService(llmService, logger);
 
         var articles = ArticleService.ReadArticlesFromCsv(inputFile);
-        var csvWriter = ArticleService.BeginCsvWriting(csvOutputFile, researchQuestions);
+        var csvWriter = ArticleService.BeginCsvWriting(csvOutputFile, researchQuestions.Questions.Select(q => q.Text).ToArray());
 
         for (int i = 0; i < articles.Count; i++)
         {
@@ -51,13 +74,16 @@ class Program
             Console.WriteLine($"Keywords: {string.Join(", ", keySemantics.Keywords)}");
 
             bool mustRead = false;
-            article.Relevances = new Relevance[researchQuestions.Length];
-            for (int j = 0; j < researchQuestions.Length; j++)
+            article.Relevances = new Relevance[researchQuestions.Questions.Count];
+            for (int j = 0; j < researchQuestions.Questions.Count; j++)
             {
-                var researchQuestion = researchQuestions[j];
-                var relevance = await nlpService.EstimateRevelance($"Title: {article.Title}\n Abstract: {article.Abstract} \n Metadata: {JsonSerializer.Serialize(keySemantics)}", "abstract", researchQuestion);
+                var researchQuestion = researchQuestions.Questions[j];
+                var combinedDefinitions = researchQuestions.Definitions.Concat(researchQuestion.Definitions).ToArray();
+                var relevance = await nlpService.EstimateRevelance(
+                    $"Title: {article.Title}\n Abstract: {article.Abstract} \n Metadata: {JsonSerializer.Serialize(keySemantics)}", "abstract",
+                    researchQuestion.Text, combinedDefinitions);
                 article.Relevances[j] = relevance;
-                Console.WriteLine($"RQ-{j+1} -- IR:{relevance.IsRelevant} RS:{relevance.RelevanceScore} IC:{relevance.IsContributing} CS:{relevance.ContributionScore}");
+                Console.WriteLine($"RQ-{j + 1} -- IR:{relevance.IsRelevant} RS:{relevance.RelevanceScore} IC:{relevance.IsContributing} CS:{relevance.ContributionScore}");
                 Console.WriteLine($"\t>> RR: {relevance.RelevanceReason.Substring(0, Math.Min(120, relevance.RelevanceReason.Length))}...");
                 Console.WriteLine($"\t>> CR: {relevance.ContributionReason.Substring(0, Math.Min(120, relevance.ContributionReason.Length))}...");
                 mustRead = mustRead || relevance.IsRelevant || relevance.IsContributing;
@@ -76,6 +102,6 @@ class Program
         ArticleService.WriteArticlesToJson(articles, jsonOutputFile);
 
         Console.WriteLine($"Successfully extracted {articles.Count} articles to {jsonOutputFile} and {csvOutputFile}");
-        Console.WriteLine($"Processed {researchQuestions.Length} research questions.");
+        Console.WriteLine($"Processed {researchQuestions.Questions.Count} research questions.");
     }
 }

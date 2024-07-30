@@ -103,7 +103,7 @@ Return the result in the following JSON format:
         return await HandleResponse<KeySemantics>(response);
     }
 
-    public async Task<Relevance> EstimateRevelance(string content, string contentType, string question)
+    public async Task<Relevance> EstimateRevelance(string content, string contentType, string question, string[] definitions)
     {
         var kernel = _llmService.OllamaGemma2ChatCompletion();
 
@@ -120,6 +120,9 @@ Content:
 
 Question:
 {{$question}}
+
+Definitions:
+{{$definitions}}
 
 Return the result in the following JSON format:
 {{$format}}
@@ -143,6 +146,7 @@ Return the result in the following JSON format:
                 ["content"] = content,
                 ["contentType"] = contentType,
                 ["question"] = question,
+                ["definitions"] = string.Join("\n", definitions),
                 ["format"] = GetJsonTemplate<Relevance>()
             });
         return await HandleResponse<Relevance>(response);

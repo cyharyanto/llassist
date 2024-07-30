@@ -20,9 +20,20 @@ public class LLMService
         return Kernel.CreateBuilder().AddOpenAIChatCompletion(modelId: "gemma2", apiKey: "notrequired", endpoint: new Uri("http://localhost:11434")).Build();
     }
 
+    public Kernel OllamaGemma227bChatCompletion()
+    {
+        return Kernel.CreateBuilder().AddOpenAIChatCompletion(modelId: "gemma2:27b", apiKey: "notrequired", endpoint: new Uri("http://localhost:11434")).Build();
+    }
+
+
     public Kernel OllamaLLaMA3ChatCompletion()
     {
         return Kernel.CreateBuilder().AddOpenAIChatCompletion(modelId: "llama3", apiKey: "notrequired", endpoint: new Uri("http://localhost:11434")).Build();
+    }
+
+    public Kernel OllamaLLaMA31ChatCompletion()
+    {
+        return Kernel.CreateBuilder().AddOpenAIChatCompletion(modelId: "llama3.1", apiKey: "notrequired", endpoint: new Uri("http://localhost:11434")).Build();
     }
 
     public Kernel GPT3_5TurboChatCompletion()
