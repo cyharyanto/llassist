@@ -1,6 +1,9 @@
 # LLAssist
 
-LLAssist is a tool for processing and analyzing research articles using Natural Language Processing (NLP) techniques and Large Language Models (LLMs). Paper: https://doi.org/10.48550/arXiv.2407.13993
+LLAssist is a tool for processing and analyzing research articles using Natural Language Processing (NLP) techniques and Large Language Models (LLMs).
+
+Note:
+- The paper with title [LLAssist: Simple Tools for Automating Literature Review Using Large Language Models](https://doi.org/10.48550/arXiv.2407.13993) uses [commit versions prior to `07caad7`](https://github.com/cyharyanto/llassist/tree/07caad7d954f9e64933ffa5aa34d0b745006feea), specifically [commit `3bf51a6`](https://github.com/cyharyanto/llassist/tree/3bf51a695b945e07c77eaa0a323c9aa3e57372bd).
 
 ## Features
 
