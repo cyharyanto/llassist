@@ -76,3 +76,9 @@ The program generates two output files:
 ## Disclaimer
 
 This tool is for research purposes. Ensure you have the necessary rights and permissions to process and analyze the articles.
+
+## Licensing
+1. This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+2. This project is a fork of llassist, which was originally MIT licensed. The original MIT-licensed code has been incorporated into this project. As per the terms of the MIT license, we have included the original MIT license text and copyright notice in our NOTICE file.
+3. All modifications and additions to the original code, as well as the project as a whole, are licensed under AGPL-3.0.
+4. For full license text and attribution details, please see the LICENSE and NOTICE files.
