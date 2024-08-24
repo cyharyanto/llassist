@@ -1,0 +1,66 @@
+﻿@page "/project-list"
+@rendermode InteractiveServer
+@inject ProjectApiClient ProjectApiClient
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>Projects</PageTitle>
+
+<h3>Projects</h3>
+
+<button class="btn btn-primary mb-3" @onclick="CreateProject">Create New Project</button>
+
+@if (projects == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var project in projects)
+            {
+                <tr>
+                    <td><strong>@project.Name</strong></td>
+                    <td>@project.Description</td>
+                    <td>
+                        <button class="btn btn-secondary me-2" @onclick="() => EditProject(project.Id)">Edit</button>
+                        <button class="btn btn-danger" @onclick="() => DeleteProject(project.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IEnumerable<ProjectViewModel>? projects;
+
+    protected override async Task OnInitializedAsync()
+    {
+        projects = await ProjectApiClient.GetAllProjectsAsync();
+    }
+
+    private void CreateProject()
+    {
+        Navigation.NavigateTo("/projects/edit");
+    }
+
+    private void EditProject(string id)
+    {
+        Navigation.NavigateTo($"/projects/edit/{id}");
+    }
+
+    private async Task DeleteProject(string id)
+    {
+        await ProjectApiClient.DeleteProjectAsync(id);
+        projects = await ProjectApiClient.GetAllProjectsAsync();
+    }
+}

@@ -48,8 +48,9 @@ Handles file I/O operations:
 - Writing results to CSV files
 
 ## Usage
+This is applicable for console mode only.
 ```
-dotnet run <input_csv_file> <research_questions_file>
+dotnet run --project llassist.AppConsole <input_csv_file> <research_questions_file>
 ```
 
 Where:

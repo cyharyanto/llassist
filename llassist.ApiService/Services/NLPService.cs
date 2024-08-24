@@ -1,10 +1,11 @@
-﻿using llassist.Models;
-using Microsoft.Extensions.Logging;
+﻿using System.Text.Json;
+
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel;
-using System.Text.Json;
 
-namespace llassist.Services;
+using llassist.Common.Models;
+
+namespace llassist.ApiService.Services;
 
 public class NLPService
 {

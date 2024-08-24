@@ -1,0 +1,71 @@
+﻿@page "/projects/edit/{id?}"
+@rendermode InteractiveServer
+
+@inject ProjectApiClient ProjectApiClient
+@inject NavigationManager Navigation
+
+<h3>@(isNewProject ? "Create Project" : "Edit Project")</h3>
+
+<EditForm Model="@project" OnValidSubmit="HandleValidSubmit" FormName="editProjectForm" class="needs-validation" novalidate>
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <td>
+                    <label for="name" class="form-label">Name:</label>
+                </td>
+                <td>
+                    <InputText id="name" class="form-control" @bind-Value="project.Name" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label for="description" class="form-label">Description:</label>
+                </td>
+                <td>
+                    <InputText id="description" class="form-control" @bind-Value="project.Description" />
+                </td>
+            </tr>
+            <!-- Add more fields as necessary -->
+        </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary">Save</button>
+</EditForm>
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    [SupplyParameterFromForm(FormName = "editProjectForm")]
+    public CreateProjectViewModel project { get; set; } = new CreateProjectViewModel();
+
+    private bool isNewProject => string.IsNullOrEmpty(Id);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!isNewProject)
+        {
+            var existingProject = await ProjectApiClient.GetProjectAsync(Id);
+            if (existingProject != null)
+            {
+                project.Name = existingProject.Name;
+                project.Description = existingProject.Description;
+            }
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (isNewProject)
+        {
+            await ProjectApiClient.CreateProjectAsync(project);
+        }
+        else
+        {
+            await ProjectApiClient.UpdateProjectAsync(Id, project);
+        }
+
+        Navigation.NavigateTo("/project-list");
+    }
+}

@@ -1,4 +1,4 @@
-﻿namespace llassist.Models;
+﻿namespace llassist.Common.Models;
 
 public class KeySemantics
 {

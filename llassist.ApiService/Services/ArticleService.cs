@@ -1,21 +1,22 @@
-﻿using llassist.Models;
+﻿using System.Text.Json;
 using System.Text;
-using System.Text.Json;
+
 using CsvHelper;
 using CsvHelper.Configuration;
 
-namespace llassist.Services;
+using llassist.Common.Models;
+
+namespace llassist.ApiService.Services;
 
 public class ArticleService
 {
-    public static List<Article> ReadArticlesFromCsv(string filePath)
+    public static IList<Article> ReadArticlesFromCsv(StreamReader reader)
     {
         var csvConfig = new CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
         {
             MissingFieldFound = null
         };
 
-        using var reader = new StreamReader(filePath);
         using var csv = new CsvReader(reader, csvConfig);
 
         var articles = new List<Article>();

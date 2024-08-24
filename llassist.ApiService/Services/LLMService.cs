@@ -2,7 +2,7 @@
 using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel;
 
-namespace llassist.Services;
+namespace llassist.ApiService.Services;
 
 public class LLMService
 {
@@ -24,7 +24,6 @@ public class LLMService
     {
         return Kernel.CreateBuilder().AddOpenAIChatCompletion(modelId: "gemma2:27b", apiKey: "notrequired", endpoint: new Uri("http://localhost:11434")).Build();
     }
-
 
     public Kernel OllamaLLaMA3ChatCompletion()
     {

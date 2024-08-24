@@ -1,7 +1,8 @@
-﻿namespace llassist.Models;
+﻿namespace llassist.Common.Models;
 
 public class Article
 {
+    public Ulid Id { get; set; } = Ulid.NewUlid();
     public string Authors { get; set; } = string.Empty;
     public int Year { get; set; }
     public string Title { get; set; } = string.Empty;
