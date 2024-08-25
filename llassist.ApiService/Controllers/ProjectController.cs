@@ -107,4 +107,37 @@ public class ProjectController : ControllerBase
 
         return File(new byte[0], "text/csv", "results.csv");
     }
+
+    [HttpPost("{projectId}/research-questions")]
+    public async Task<IActionResult> AddResearchQuestion(string projectId, [FromBody] AddEditResearchQuestionViewModel questionViewModel)
+    {
+        var researchQuestions = await _projectService.AddResearchQuestionAsync(Ulid.Parse(projectId), questionViewModel);
+        if (researchQuestions == null)
+        {
+            return NotFound();
+        }
+        return Ok(researchQuestions);
+    }
+
+    [HttpPut("{projectId}/research-questions/{questionIndex}")]
+    public async Task<IActionResult> UpdateResearchQuestion(string projectId, int questionIndex, [FromBody] AddEditResearchQuestionViewModel questionViewModel)
+    {
+        var researchQuestions = await _projectService.UpdateResearchQuestionAsync(Ulid.Parse(projectId), questionIndex, questionViewModel);
+        if (researchQuestions == null)
+        {
+            return NotFound();
+        }
+        return Ok(researchQuestions);
+    }
+
+    [HttpDelete("{projectId}/research-questions/{questionIndex}")]
+    public async Task<IActionResult> DeleteResearchQuestion(string projectId, int questionIndex)
+    {
+        var success = await _projectService.DeleteResearchQuestionAsync(Ulid.Parse(projectId), questionIndex);
+        if (!success)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
 }

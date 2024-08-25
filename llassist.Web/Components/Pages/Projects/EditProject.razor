@@ -31,8 +31,40 @@
             <!-- Add more fields as necessary -->
         </tbody>
     </table>
-    <button type="submit" class="btn btn-primary">Save</button>
+    <button type="submit" class="btn btn-primary">Save Project</button>
 </EditForm>
+
+@if (!isNewProject)
+{
+    <h4 class="mt-4">Research Questions</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Question</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var question in researchQuestions.Questions)
+            {
+                <tr>
+                    <td>@question.Text</td>
+                    <td>
+                        <button class="btn btn-secondary me-2" @onclick="() => EditResearchQuestion(question)">Edit</button>
+                        <button class="btn btn-danger me-2" @onclick="() => DeleteResearchQuestion(question)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="mb-3">
+        <InputText @bind-Value="currentQuestion.Text" class="form-control" placeholder="New Research Question" />
+    </div>
+    <button class="btn btn-primary" @onclick="HandleQuestionSubmit">
+        @(isEditingQuestion ? "Save" : "Add") Question
+    </button>
+}
 
 @code {
     [Parameter] public string? Id { get; set; }
@@ -41,16 +73,21 @@
     public CreateEditProjectViewModel project { get; set; } = new CreateEditProjectViewModel();
 
     private bool isNewProject => string.IsNullOrEmpty(Id);
+    private ResearchQuestionsViewModel researchQuestions = new();
+    private AddEditResearchQuestionViewModel currentQuestion = new();
+    private bool isEditingQuestion = false;
+    private int editingQuestionIndex = -1;
 
     protected override async Task OnInitializedAsync()
     {
-        if (!isNewProject)
+        if (!isNewProject && Id != null)
         {
             var existingProject = await ProjectApiClient.GetProjectAsync(Id);
             if (existingProject != null)
             {
                 project.Name = existingProject.Name;
                 project.Description = existingProject.Description;
+                researchQuestions = existingProject.ResearchQuestions ?? new ResearchQuestionsViewModel();
             }
         }
     }
@@ -61,11 +98,52 @@
         {
             await ProjectApiClient.CreateProjectAsync(project);
         }
-        else
+        else if (Id != null)
         {
             await ProjectApiClient.UpdateProjectAsync(Id, project);
         }
 
         Navigation.NavigateTo("/project-list");
+    }
+
+    private void EditResearchQuestion(QuestionViewModel question)
+    {
+        currentQuestion = new AddEditResearchQuestionViewModel { Text = question.Text, Definitions = question.Definitions };
+        isEditingQuestion = true;
+        editingQuestionIndex = researchQuestions.Questions.IndexOf(question);
+    }
+
+    private async Task HandleQuestionSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(currentQuestion.Text))
+            return;
+
+        if (Id != null)
+        {
+            if (isEditingQuestion)
+            {
+                await ProjectApiClient.UpdateResearchQuestionAsync(Id, editingQuestionIndex, currentQuestion);
+                researchQuestions.Questions[editingQuestionIndex] = new QuestionViewModel { Text = currentQuestion.Text, Definitions = currentQuestion.Definitions };
+            }
+            else
+            {
+                await ProjectApiClient.AddResearchQuestionAsync(Id, currentQuestion);
+                researchQuestions.Questions.Add(new QuestionViewModel { Text = currentQuestion.Text, Definitions = currentQuestion.Definitions });
+            }
+
+            currentQuestion = new AddEditResearchQuestionViewModel();
+            isEditingQuestion = false;
+            editingQuestionIndex = -1;
+        }
+    }
+
+    private async Task DeleteResearchQuestion(QuestionViewModel question)
+    {
+        if (Id != null)
+        {
+            var index = researchQuestions.Questions.IndexOf(question);
+            await ProjectApiClient.DeleteResearchQuestionAsync(Id, index);
+            researchQuestions.Questions.RemoveAt(index);
+        }
     }
 }

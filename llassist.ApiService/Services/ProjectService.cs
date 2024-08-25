@@ -55,6 +55,74 @@ public class ProjectService
         return await _projectRepository.DeleteAsync(id);
     }
 
+    public async Task<ProjectViewModel?> UpdateProjectAsync(Ulid id, ProjectViewModel projectViewModel)
+    {
+        if (string.IsNullOrWhiteSpace(projectViewModel.Name) || string.IsNullOrWhiteSpace(projectViewModel.Description))
+        {
+            throw new ArgumentException("Project name and description cannot be empty.");
+        }
+
+        var project = await _projectRepository.ReadAsync(id);
+        if (project == null)
+        {
+            return null;
+        }
+
+        project.Name = projectViewModel.Name;
+        project.Description = projectViewModel.Description;
+
+        var updated = await _projectRepository.UpdateAsync(project);
+        return updated != null ? ToViewModel(updated) : null;
+    }
+
+    public async Task<ResearchQuestionsViewModel?> AddResearchQuestionAsync(Ulid projectId, AddEditResearchQuestionViewModel questionViewModel)
+    {
+        var project = await _projectRepository.ReadAsync(projectId);
+        if (project == null)
+        {
+            return null;
+        }
+
+        var question = new Question
+        {
+            Text = questionViewModel.Text,
+            Definitions = questionViewModel.Definitions
+        };
+
+        project.ResearchQuestions.Questions.Add(question);
+        var updated = await _projectRepository.UpdateAsync(project);
+        return updated != null ? ToResearchQuestionsViewModel(updated.ResearchQuestions) : null;
+    }
+
+    public async Task<ResearchQuestionsViewModel?> UpdateResearchQuestionAsync(Ulid projectId, int questionIndex, AddEditResearchQuestionViewModel questionViewModel)
+    {
+        var project = await _projectRepository.ReadAsync(projectId);
+        if (project == null || questionIndex < 0 || questionIndex >= project.ResearchQuestions.Questions.Count)
+        {
+            return null;
+        }
+
+        var question = project.ResearchQuestions.Questions[questionIndex];
+        question.Text = questionViewModel.Text;
+        question.Definitions = questionViewModel.Definitions;
+
+        var updated = await _projectRepository.UpdateAsync(project);
+        return updated != null ? ToResearchQuestionsViewModel(updated.ResearchQuestions) : null;
+    }
+
+    public async Task<bool> DeleteResearchQuestionAsync(Ulid projectId, int questionIndex)
+    {
+        var project = await _projectRepository.ReadAsync(projectId);
+        if (project == null || questionIndex < 0 || questionIndex >= project.ResearchQuestions.Questions.Count)
+        {
+            return false;
+        }
+
+        project.ResearchQuestions.Questions.RemoveAt(questionIndex);
+        var updated = await _projectRepository.UpdateAsync(project);
+        return updated != null;
+    }
+
     public static ProjectViewModel ToViewModel(Project project)
     {
         return new ProjectViewModel
@@ -76,25 +144,20 @@ public class ProjectService
                     IsRelevant = relevance.IsRelevant
                 }).ToList()
             }).ToList(),
+            ResearchQuestions = ToResearchQuestionsViewModel(project.ResearchQuestions)
         };
     }
-    public async Task<ProjectViewModel?> UpdateProjectAsync(Ulid id, ProjectViewModel projectViewModel)
+
+    private static ResearchQuestionsViewModel ToResearchQuestionsViewModel(ResearchQuestions researchQuestions)
     {
-        if (string.IsNullOrWhiteSpace(projectViewModel.Name) || string.IsNullOrWhiteSpace(projectViewModel.Description))
+        return new ResearchQuestionsViewModel
         {
-            throw new ArgumentException("Project name and description cannot be empty.");
-        }
-
-        var project = await _projectRepository.ReadAsync(id);
-        if (project == null)
-        {
-            return null;
-        }
-
-        project.Name = projectViewModel.Name;
-        project.Description = projectViewModel.Description;
-
-        var updated = await _projectRepository.UpdateAsync(project);
-        return updated != null ? ToViewModel(updated) : null;
+            Definitions = researchQuestions.Definitions,
+            Questions = researchQuestions.Questions.Select(q => new QuestionViewModel
+            {
+                Text = q.Text,
+                Definitions = q.Definitions
+            }).ToList()
+        };
     }
 }

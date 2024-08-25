@@ -66,4 +66,24 @@ public class ProjectApiClient
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsByteArrayAsync();
     }
+
+    public async Task<ResearchQuestionsViewModel?> AddResearchQuestionAsync(string projectId, AddEditResearchQuestionViewModel questionViewModel)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"api/project/{projectId}/research-questions", questionViewModel);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ResearchQuestionsViewModel>();
+    }
+
+    public async Task<ResearchQuestionsViewModel?> UpdateResearchQuestionAsync(string projectId, int questionIndex, AddEditResearchQuestionViewModel questionViewModel)
+    {
+        var response = await _httpClient.PutAsJsonAsync($"api/project/{projectId}/research-questions/{questionIndex}", questionViewModel);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ResearchQuestionsViewModel>();
+    }
+
+    public async Task DeleteResearchQuestionAsync(string projectId, int questionIndex)
+    {
+        var response = await _httpClient.DeleteAsync($"api/project/{projectId}/research-questions/{questionIndex}");
+        response.EnsureSuccessStatusCode();
+    }
 }
