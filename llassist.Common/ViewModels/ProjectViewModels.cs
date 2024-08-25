@@ -6,6 +6,12 @@ public class CreateEditProjectViewModel
     public string Description { get; set; } = string.Empty;
 }
 
+public class AddEditDefinitionViewModel
+{
+    public string Definition { get; set; } = string.Empty;
+}
+
+
 public class AddEditResearchQuestionViewModel
 {
     public string Text { get; set; } = string.Empty;

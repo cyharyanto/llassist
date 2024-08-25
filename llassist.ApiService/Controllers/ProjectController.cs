@@ -108,6 +108,39 @@ public class ProjectController : ControllerBase
         return File(new byte[0], "text/csv", "results.csv");
     }
 
+    [HttpPost("{projectId}/definitions")]
+    public async Task<IActionResult> AddDefinition(string projectId, [FromBody] AddEditDefinitionViewModel definitionViewModel)
+    {
+        var researchQuestions = await _projectService.AddDefinitionAsync(Ulid.Parse(projectId), definitionViewModel.Definition);
+        if (researchQuestions == null)
+        {
+            return NotFound();
+        }
+        return Ok(researchQuestions);
+    }
+
+    [HttpPut("{projectId}/definitions/{definitionIndex}")]
+    public async Task<IActionResult> UpdateDefinition(string projectId, int definitionIndex, [FromBody] AddEditDefinitionViewModel definitionViewModel)
+    {
+        var researchQuestions = await _projectService.UpdateDefinitionAsync(Ulid.Parse(projectId), definitionIndex, definitionViewModel.Definition);
+        if (researchQuestions == null)
+        {
+            return NotFound();
+        }
+        return Ok(researchQuestions);
+    }
+
+    [HttpDelete("{projectId}/definitions/{definitionIndex}")]
+    public async Task<IActionResult> DeleteDefinition(string projectId, int definitionIndex)
+    {
+        var success = await _projectService.DeleteDefinitionAsync(Ulid.Parse(projectId), definitionIndex);
+        if (!success)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+
     [HttpPost("{projectId}/research-questions")]
     public async Task<IActionResult> AddResearchQuestion(string projectId, [FromBody] AddEditResearchQuestionViewModel questionViewModel)
     {

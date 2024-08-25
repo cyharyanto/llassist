@@ -67,6 +67,26 @@ public class ProjectApiClient
         return await response.Content.ReadAsByteArrayAsync();
     }
 
+    public async Task<ResearchQuestionsViewModel?> AddDefinitionAsync(string projectId, AddEditDefinitionViewModel definitionViewModel)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"api/project/{projectId}/definitions", definitionViewModel);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ResearchQuestionsViewModel>();
+    }
+
+    public async Task<ResearchQuestionsViewModel?> UpdateDefinitionAsync(string projectId, int definitionIndex, AddEditDefinitionViewModel definitionViewModel)
+    {
+        var response = await _httpClient.PutAsJsonAsync($"api/project/{projectId}/definitions/{definitionIndex}", definitionViewModel);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ResearchQuestionsViewModel>();
+    }
+
+    public async Task DeleteDefinitionAsync(string projectId, int definitionIndex)
+    {
+        var response = await _httpClient.DeleteAsync($"api/project/{projectId}/definitions/{definitionIndex}");
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<ResearchQuestionsViewModel?> AddResearchQuestionAsync(string projectId, AddEditResearchQuestionViewModel questionViewModel)
     {
         var response = await _httpClient.PostAsJsonAsync($"api/project/{projectId}/research-questions", questionViewModel);

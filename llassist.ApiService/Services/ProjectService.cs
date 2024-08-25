@@ -123,6 +123,44 @@ public class ProjectService
         return updated != null;
     }
 
+    public async Task<ResearchQuestionsViewModel?> AddDefinitionAsync(Ulid projectId, string definition)
+    {
+        var project = await _projectRepository.ReadAsync(projectId);
+        if (project == null)
+        {
+            return null;
+        }
+
+        project.ResearchQuestions.Definitions.Add(definition);
+        var updated = await _projectRepository.UpdateAsync(project);
+        return updated != null ? ToResearchQuestionsViewModel(updated.ResearchQuestions) : null;
+    }
+
+    public async Task<ResearchQuestionsViewModel?> UpdateDefinitionAsync(Ulid projectId, int definitionIndex, string definition)
+    {
+        var project = await _projectRepository.ReadAsync(projectId);
+        if (project == null || definitionIndex < 0 || definitionIndex >= project.ResearchQuestions.Definitions.Count)
+        {
+            return null;
+        }
+
+        project.ResearchQuestions.Definitions[definitionIndex] = definition;
+        var updated = await _projectRepository.UpdateAsync(project);
+        return updated != null ? ToResearchQuestionsViewModel(updated.ResearchQuestions) : null;
+    }
+
+    public async Task<bool> DeleteDefinitionAsync(Ulid projectId, int definitionIndex)
+    {
+        var project = await _projectRepository.ReadAsync(projectId);
+        if (project == null || definitionIndex < 0 || definitionIndex >= project.ResearchQuestions.Definitions.Count)
+        {
+            return false;
+        }
+
+        project.ResearchQuestions.Definitions.RemoveAt(definitionIndex);
+        var updated = await _projectRepository.UpdateAsync(project);
+        return updated != null;
+    }
     public static ProjectViewModel ToViewModel(Project project)
     {
         return new ProjectViewModel
