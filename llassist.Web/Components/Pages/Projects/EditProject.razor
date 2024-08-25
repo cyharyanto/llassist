@@ -83,6 +83,36 @@
                         <button class="btn btn-danger me-2" @onclick="() => DeleteResearchQuestion(question)">Delete</button>
                     </td>
                 </tr>
+                <tr>
+                    <td colspan="2">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Definition</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var definition in question.Definitions)
+                                {
+                                    <tr>
+                                        <td>@definition</td>
+                                        <td>
+                                            <button class="btn btn-secondary me-2" @onclick="() => EditQuestionDefinition(question, definition)">Edit</button>
+                                            <button class="btn btn-danger me-2" @onclick="() => DeleteQuestionDefinition(question, definition)">Delete</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <div class="mb-3">
+                            <InputText @bind-Value="currentQuestionDefinition" class="form-control" placeholder="New Definition" />
+                        </div>
+                        <button class="btn btn-primary" @onclick="() => HandleQuestionDefinitionSubmit(question)">
+                            @(isEditingQuestionDefinition ? "Save" : "Add") Definition
+                        </button>
+                    </td>
+                </tr>
             }
         </tbody>
     </table>
@@ -104,11 +134,14 @@
     private bool isNewProject => string.IsNullOrEmpty(Id);
     private ResearchQuestionsViewModel researchQuestions = new();
     private AddEditDefinitionViewModel currentDefinition = new();
-    private AddEditResearchQuestionViewModel currentQuestion = new();    
+    private AddEditResearchQuestionViewModel currentQuestion = new();
+    private string currentQuestionDefinition = string.Empty;
     private bool isEditingQuestion = false;
     private bool isEditingDefinition = false;
+    private bool isEditingQuestionDefinition = false;
     private int editingQuestionIndex = -1;
     private int editingDefinitionIndex = -1;
+    private int editingQuestionDefinitionIndex = -1;
 
     protected override async Task OnInitializedAsync()
     {
@@ -217,6 +250,60 @@
             var index = researchQuestions.Questions.IndexOf(question);
             await ProjectApiClient.DeleteResearchQuestionAsync(Id, index);
             researchQuestions.Questions.RemoveAt(index);
+        }
+    }
+
+    private void EditQuestionDefinition(QuestionViewModel question, string definition)
+    {
+        currentQuestionDefinition = definition;
+        isEditingQuestionDefinition = true;
+        editingQuestionDefinitionIndex = question.Definitions.IndexOf(definition);
+    }
+
+    private async Task HandleQuestionDefinitionSubmit(QuestionViewModel question)
+    {
+        if (string.IsNullOrWhiteSpace(currentQuestionDefinition))
+            return;
+
+        if (Id != null)
+        {
+            if (isEditingQuestionDefinition)
+            {
+                question.Definitions[editingQuestionDefinitionIndex] = currentQuestionDefinition;
+            }
+            else
+            {
+                question.Definitions.Add(currentQuestionDefinition);
+            }
+
+            currentQuestionDefinition = string.Empty;
+            isEditingQuestionDefinition = false;
+            editingQuestionDefinitionIndex = -1;
+
+            // Update the entire research question to make the change atomic
+            var index = researchQuestions.Questions.IndexOf(question);
+            await ProjectApiClient.UpdateResearchQuestionAsync(Id, index, new AddEditResearchQuestionViewModel
+                {
+                    Text = question.Text,
+                    Definitions = question.Definitions
+                });
+        }
+    }
+
+    private async Task DeleteQuestionDefinition(QuestionViewModel question, string definition)
+    {
+        if (Id != null)
+        {
+            var index = question.Definitions.IndexOf(definition);
+            question.Definitions.RemoveAt(index);
+
+            // Update the entire research question to make the change atomic
+            var questionIndex = researchQuestions.Questions.IndexOf(question);
+            await ProjectApiClient.UpdateResearchQuestionAsync(Id, questionIndex, new AddEditResearchQuestionViewModel
+                {
+                    Text = question.Text,
+                    Definitions = question.Definitions
+                });
         }
     }
 }
