@@ -23,7 +23,7 @@ public class ProjectController : ControllerBase
     }
 
     [HttpPost("create")]
-    public async Task<IActionResult> CreateProject([FromBody] CreateProjectViewModel createProject)
+    public async Task<IActionResult> CreateProject([FromBody] CreateEditProjectViewModel createProject)
     {
         var project = await _projectService.CreateProjectAsync(createProject.Name, createProject.Description);
         return Ok(project);
@@ -48,7 +48,7 @@ public class ProjectController : ControllerBase
     }
 
     [HttpPut("{projectId}")]
-    public async Task<IActionResult> UpdateProject(string projectId, [FromBody] CreateProjectViewModel updateProject)
+    public async Task<IActionResult> UpdateProject(string projectId, [FromBody] CreateEditProjectViewModel updateProject)
     {
         var project = await _projectService.GetProjectAsync(Ulid.Parse(projectId));
         if (project == null)
@@ -75,7 +75,7 @@ public class ProjectController : ControllerBase
     }
 
     [HttpPost("upload/{projectId}")]
-    public async Task<IActionResult> UploadCSV(string projectId, [FromBody] IFormFile file)
+    public async Task<IActionResult> UploadCSV(string projectId, IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest("File is empty");

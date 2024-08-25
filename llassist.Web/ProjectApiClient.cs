@@ -1,4 +1,5 @@
 ﻿using llassist.Common.ViewModels;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace llassist.Web;
 
@@ -11,7 +12,7 @@ public class ProjectApiClient
         _httpClient = httpClient;
     }
 
-    public async Task<ProjectViewModel?> CreateProjectAsync(CreateProjectViewModel createProject)
+    public async Task<ProjectViewModel?> CreateProjectAsync(CreateEditProjectViewModel createProject)
     {
         var response = await _httpClient.PostAsJsonAsync("api/project/create", createProject);
         response.EnsureSuccessStatusCode();
@@ -29,7 +30,7 @@ public class ProjectApiClient
         return projects ?? Enumerable.Empty<ProjectViewModel>();
     }
 
-    public async Task<ProjectViewModel?> UpdateProjectAsync(string id, CreateProjectViewModel updateProject)
+    public async Task<ProjectViewModel?> UpdateProjectAsync(string id, CreateEditProjectViewModel updateProject)
     {
         var response = await _httpClient.PutAsJsonAsync($"api/project/{id}", updateProject);
         response.EnsureSuccessStatusCode();
@@ -42,12 +43,12 @@ public class ProjectApiClient
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task<ProjectViewModel?> UploadCSVAsync(string projectId, IFormFile file)
+    public async Task<ProjectViewModel?> UploadCSVAsync(string projectId, IBrowserFile file)
     {
         using var content = new MultipartFormDataContent();
         using var fileStream = file.OpenReadStream();
         var streamContent = new StreamContent(fileStream);
-        content.Add(streamContent, "file", file.FileName);
+        content.Add(streamContent, "file", file.Name);
 
         var response = await _httpClient.PostAsync($"api/project/upload/{projectId}", content);
         response.EnsureSuccessStatusCode();

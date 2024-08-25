@@ -38,7 +38,7 @@
     [Parameter] public string? Id { get; set; }
 
     [SupplyParameterFromForm(FormName = "editProjectForm")]
-    public CreateProjectViewModel project { get; set; } = new CreateProjectViewModel();
+    public CreateEditProjectViewModel project { get; set; } = new CreateEditProjectViewModel();
 
     private bool isNewProject => string.IsNullOrEmpty(Id);
 
