@@ -208,8 +208,6 @@ namespace llassist.ApiService.Migrations
 
                                     b2.ToTable("Projects");
 
-                                    b2.ToJson("Questions");
-
                                     b2.WithOwner()
                                         .HasForeignKey("ResearchQuestionsProjectId");
                                 });

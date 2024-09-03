@@ -11,7 +11,7 @@ using llassist.ApiService.Repositories;
 namespace llassist.ApiService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240903055202_InitialCreate")]
+    [Migration("20240903071944_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -210,8 +210,6 @@ namespace llassist.ApiService.Migrations
                                     b2.HasKey("ResearchQuestionsProjectId", "Id");
 
                                     b2.ToTable("Projects");
-
-                                    b2.ToJson("Questions");
 
                                     b2.WithOwner()
                                         .HasForeignKey("ResearchQuestionsProjectId");

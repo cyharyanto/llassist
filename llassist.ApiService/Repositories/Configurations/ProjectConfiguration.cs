@@ -16,10 +16,7 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.OwnsOne(p => p.ResearchQuestions, builder =>
         {
             builder.ToJson();
-            builder.OwnsMany(rq => rq.Questions, builder =>
-            {
-                builder.ToJson();
-            });
+            builder.OwnsMany(p => p.Questions);
         });
     }
 }
