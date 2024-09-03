@@ -75,7 +75,7 @@ class Program
             Console.WriteLine($"Keywords: {string.Join(", ", keySemantics.Keywords)}");
 
             bool mustRead = false;
-            article.Relevances = new Relevance[researchQuestions.Questions.Count];
+            article.Relevances = new List<Relevance>();
             for (int j = 0; j < researchQuestions.Questions.Count; j++)
             {
                 var researchQuestion = researchQuestions.Questions[j];
@@ -83,7 +83,7 @@ class Program
                 var relevance = await nlpService.EstimateRevelance(
                     $"Title: {article.Title}\n Abstract: {article.Abstract} \n Metadata: {JsonSerializer.Serialize(keySemantics)}", "abstract",
                     researchQuestion.Text, combinedDefinitions);
-                article.Relevances[j] = relevance;
+                article.Relevances.Add(relevance);
                 Console.WriteLine($"RQ-{j + 1} -- IR:{relevance.IsRelevant} RS:{relevance.RelevanceScore} IC:{relevance.IsContributing} CS:{relevance.ContributionScore}");
                 Console.WriteLine($"\t>> RR: {relevance.RelevanceReason.Substring(0, Math.Min(120, relevance.RelevanceReason.Length))}...");
                 Console.WriteLine($"\t>> CR: {relevance.ContributionReason.Substring(0, Math.Min(120, relevance.ContributionReason.Length))}...");
