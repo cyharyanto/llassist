@@ -10,9 +10,10 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
     {
         builder.ToTable("Projects");
         builder.HasKey(p => p.Id);
-        builder.HasMany(p => p.Articles)
-            .WithOne(a => a.Project)
-            .HasForeignKey(a => a.ProjectId);
+        builder.OwnsMany(p => p.Articles, builder =>
+        {
+            builder.ToJson();
+        });
         builder.OwnsOne(p => p.ResearchQuestions, builder =>
         {
             builder.ToJson();
