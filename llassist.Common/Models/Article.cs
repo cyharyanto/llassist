@@ -1,4 +1,6 @@
-﻿namespace llassist.Common.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace llassist.Common.Models;
 
 public class Article
 {
@@ -12,4 +14,7 @@ public class Article
     public KeySemantics KeySemantics { get; set; } = new KeySemantics();
     public bool MustRead { get; set; }
     public Relevance[] Relevances { get; set; } = Array.Empty<Relevance>();
+    [JsonIgnore]
+    public virtual Project Project { get; set; } = null!;
+    public Ulid ProjectId { get; set; }
 }
