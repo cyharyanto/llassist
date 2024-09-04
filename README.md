@@ -48,7 +48,9 @@ Handles file I/O operations:
 - Writing results to CSV files
 
 ## Usage
-This is applicable for console mode only.
+
+### Console Mode
+
 ```
 dotnet run --project llassist.AppConsole <input_csv_file> <research_questions_file>
 ```
@@ -56,6 +58,19 @@ dotnet run --project llassist.AppConsole <input_csv_file> <research_questions_fi
 Where:
 - `<input_csv_file>` is the path to the CSV file containing the articles
 - `<research_questions_file>` is the path to a text file containing the research questions (one per line)
+
+### Web Application
+
+Run docker compose in the root directory
+```
+docker-compose up -d
+```
+
+Run DB migrations in ApiService dir
+```
+dotnet ef database update
+```
+
 
 ## Output
 
