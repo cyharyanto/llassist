@@ -35,12 +35,16 @@ public class ProjectRepository : ICRUDRepository<Ulid, Project>
 
     public async Task<IEnumerable<Project>> ReadAllAsync()
     {
-        return await _context.Projects.ToListAsync();
+        return await _context.Projects
+                             .Include(p => p.Articles)
+                             .ToListAsync();
     }
 
     public async Task<Project?> ReadAsync(Ulid id)
     {
-        return await _context.Projects.FindAsync(id);
+        return await _context.Projects
+                             .Include(p => p.Articles)
+                             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<Project> UpdateAsync(Project project)
