@@ -35,9 +35,7 @@ public class ProjectRepository : ICRUDRepository<Ulid, Project>
 
     public async Task<IEnumerable<Project>> ReadAllAsync()
     {
-        return await _context.Projects
-                             .Include(p => p.Articles)
-                             .ToListAsync();
+        return await _context.Projects.ToListAsync(); // Eager loading is disabled to avoid heavy load on large datasets
     }
 
     public async Task<Project?> ReadAsync(Ulid id)
