@@ -2,7 +2,7 @@
 
 namespace llassist.Common.Models;
 
-public class Article
+public class Article : IEntity<Ulid>
 {
     public Ulid Id { get; set; } = Ulid.NewUlid();
     public string Authors { get; set; } = string.Empty;

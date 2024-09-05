@@ -30,6 +30,7 @@ internal class Program
             options.UseNpgsql(builder.Configuration.GetConnectionString("LlassistAppDatabase"));
         });
         builder.Services.AddScoped<ICRUDRepository<Ulid, Project>, ProjectRepository>();
+        builder.Services.AddScoped<ICRUDRepository<Ulid, Article>, ArticleRepository>();
 
         // Register the Services
         builder.Services.AddScoped<ProjectService>();
