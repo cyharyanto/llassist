@@ -1,4 +1,5 @@
-﻿using llassist.Common;
+﻿using llassist.ApiService.Repositories.Specifications;
+using llassist.Common;
 using llassist.Common.Models;
 using llassist.Common.ViewModels;
 
@@ -6,9 +7,9 @@ namespace llassist.ApiService.Services;
 
 public class ProjectService
 {
-    private readonly ICRUDRepository<Ulid, Project> _projectRepository;
+    private readonly ICRUDRepository<Ulid, Project, ProjectSearchSpec> _projectRepository;
 
-    public ProjectService(ICRUDRepository<Ulid, Project> projectRepository)
+    public ProjectService(ICRUDRepository<Ulid, Project, ProjectSearchSpec> projectRepository)
     {
         _projectRepository = projectRepository;
     }

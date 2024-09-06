@@ -1,10 +1,11 @@
-﻿using llassist.Common;
+﻿using llassist.ApiService.Repositories.Specifications;
+using llassist.Common;
 using llassist.Common.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace llassist.ApiService.Repositories;
 
-public class ArticleRepository : ICRUDRepository<Ulid, Article>
+public class ArticleRepository : ICRUDRepository<Ulid, Article, ArticleSearchSpec>
 {
     private readonly ApplicationDbContext _context;
 
@@ -33,14 +34,21 @@ public class ArticleRepository : ICRUDRepository<Ulid, Article>
         return true;
     }
 
-    public async Task<IEnumerable<Article>> ReadAllAsync()
+    public Task<IEnumerable<Article>> ReadAllAsync()
     {
-        return await _context.Articles.ToListAsync();
+        throw new NotImplementedException("This method is not supported for Articles");
     }
 
     public async Task<Article?> ReadAsync(Ulid id)
     {
         return await _context.Articles.FindAsync(id);
+    }
+
+    public async Task<IEnumerable<Article>> ReadWithSearchSpecAsync(ArticleSearchSpec searchSpec)
+    {
+        return await _context.Articles
+            .Where(a => a.ProjectId == searchSpec.ProjectId)
+            .ToListAsync();
     }
 
     public async Task<Article> UpdateAsync(Article article)

@@ -2,7 +2,7 @@
 
 namespace llassist.ApiService.Repositories;
 
-public class InMemoryRepository<TEntity> : ICRUDRepository<Ulid, TEntity> where TEntity : IEntity<Ulid>
+public class InMemoryRepository<TEntity, TSearchSpec> : ICRUDRepository<Ulid, TEntity, TSearchSpec> where TEntity : IEntity<Ulid>
 {
     private readonly Dictionary<Ulid, TEntity> _entities = new();
 
@@ -38,5 +38,10 @@ public class InMemoryRepository<TEntity> : ICRUDRepository<Ulid, TEntity> where 
 
         _entities[entity.Id] = entity;
         return Task.FromResult(entity);
+    }
+
+    public Task<IEnumerable<TEntity>> ReadWithSearchSpecAsync(TSearchSpec searchSpec)
+    {
+        throw new NotImplementedException();
     }
 }

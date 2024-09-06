@@ -1,10 +1,11 @@
-﻿using llassist.Common;
+﻿using llassist.ApiService.Repositories.Specifications;
+using llassist.Common;
 using llassist.Common.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace llassist.ApiService.Repositories;
 
-public class ProjectRepository : ICRUDRepository<Ulid, Project>
+public class ProjectRepository : ICRUDRepository<Ulid, Project, ProjectSearchSpec>
 {
     private readonly ApplicationDbContext _context;
 
@@ -43,6 +44,11 @@ public class ProjectRepository : ICRUDRepository<Ulid, Project>
         return await _context.Projects
                              .Include(p => p.Articles)
                              .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public Task<IEnumerable<Project>> ReadWithSearchSpecAsync(ProjectSearchSpec searchSpec)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<Project> UpdateAsync(Project project)

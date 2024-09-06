@@ -1,4 +1,5 @@
 ﻿using llassist.ApiService.Repositories;
+using llassist.ApiService.Repositories.Specifications;
 using llassist.Common.Models;
 using Xunit;
 using Assert = Xunit.Assert;
@@ -43,13 +44,17 @@ public class ArticleRepositoryTest : IClassFixture<DatabaseFixture>, IDisposable
         var readArticle = await _repository.ReadAsync(Article.Id);
         VerifyArticle(readArticle);
 
-        // Update then find from read-all
+        // Update then find from read-with-search-spec
         Article.Title = "Updated Article";
         await _repository.UpdateAsync(Article);
 
-        var allArticles = await _repository.ReadAllAsync();
+        var articlesByProjectId = await _repository.ReadWithSearchSpecAsync(
+            new ArticleSearchSpec
+            {
+                ProjectId = Article.ProjectId
+            });
         Article? foundArticle = null;
-        foreach (var article in allArticles)
+        foreach (var article in articlesByProjectId)
         {
             if (article.Id == Article.Id)
             {
