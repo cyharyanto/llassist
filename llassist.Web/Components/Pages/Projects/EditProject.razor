@@ -1,0 +1,309 @@
+﻿@page "/projects/edit/{id?}"
+@rendermode InteractiveServer
+
+@inject ProjectApiClient ProjectApiClient
+@inject NavigationManager Navigation
+
+<h3>@(isNewProject ? "Create Project" : "Edit Project")</h3>
+
+<EditForm Model="@project" OnValidSubmit="HandleValidSubmit" FormName="editProjectForm" class="needs-validation" novalidate>
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <td>
+                    <label for="name" class="form-label">Name:</label>
+                </td>
+                <td>
+                    <InputText id="name" class="form-control" @bind-Value="project.Name" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label for="description" class="form-label">Description:</label>
+                </td>
+                <td>
+                    <InputText id="description" class="form-control" @bind-Value="project.Description" />
+                </td>
+            </tr>
+            <!-- Add more fields as necessary -->
+        </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary">Save Project</button>
+</EditForm>
+
+@if (!isNewProject)
+{
+    <h4 class="mt-4">Definitions</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Definition</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var definition in researchQuestions.Definitions)
+            {
+                <tr>
+                    <td>@definition</td>
+                    <td>
+                        <button class="btn btn-secondary me-2" @onclick="() => EditDefinition(definition)">Edit</button>
+                        <button class="btn btn-danger me-2" @onclick="() => DeleteDefinition(definition)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="mb-3">
+        <InputText @bind-Value="currentDefinition.Definition" class="form-control" placeholder="New Definition" />
+    </div>
+    <button class="btn btn-primary" @onclick="HandleDefinitionSubmit">
+        @(isEditingDefinition ? "Save" : "Add") Definition
+    </button>
+
+    <h4 class="mt-4">Research Questions</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Question</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var question in researchQuestions.Questions)
+            {
+                <tr>
+                    <td>@question.Text</td>
+                    <td>
+                        <button class="btn btn-secondary me-2" @onclick="() => EditResearchQuestion(question)">Edit</button>
+                        <button class="btn btn-danger me-2" @onclick="() => DeleteResearchQuestion(question)">Delete</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Definition</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var definition in question.Definitions)
+                                {
+                                    <tr>
+                                        <td>@definition</td>
+                                        <td>
+                                            <button class="btn btn-secondary me-2" @onclick="() => EditQuestionDefinition(question, definition)">Edit</button>
+                                            <button class="btn btn-danger me-2" @onclick="() => DeleteQuestionDefinition(question, definition)">Delete</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <div class="mb-3">
+                            <InputText @bind-Value="currentQuestionDefinition" class="form-control" placeholder="New Definition" />
+                        </div>
+                        <button class="btn btn-primary" @onclick="() => HandleQuestionDefinitionSubmit(question)">
+                            @(isEditingQuestionDefinition ? "Save" : "Add") Definition
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="mb-3">
+        <InputText @bind-Value="currentQuestion.Text" class="form-control" placeholder="New Research Question" />
+    </div>
+    <button class="btn btn-primary" @onclick="HandleQuestionSubmit">
+        @(isEditingQuestion ? "Save" : "Add") Question
+    </button>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    [SupplyParameterFromForm(FormName = "editProjectForm")]
+    public CreateEditProjectViewModel project { get; set; } = new CreateEditProjectViewModel();
+
+    private bool isNewProject => string.IsNullOrEmpty(Id);
+    private ResearchQuestionsViewModel researchQuestions = new();
+    private AddEditDefinitionViewModel currentDefinition = new();
+    private AddEditResearchQuestionViewModel currentQuestion = new();
+    private string currentQuestionDefinition = string.Empty;
+    private bool isEditingQuestion = false;
+    private bool isEditingDefinition = false;
+    private bool isEditingQuestionDefinition = false;
+    private int editingQuestionIndex = -1;
+    private int editingDefinitionIndex = -1;
+    private int editingQuestionDefinitionIndex = -1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!isNewProject && Id != null)
+        {
+            var existingProject = await ProjectApiClient.GetProjectAsync(Id);
+            if (existingProject != null)
+            {
+                project.Name = existingProject.Name;
+                project.Description = existingProject.Description;
+                researchQuestions = existingProject.ResearchQuestions ?? new ResearchQuestionsViewModel();
+            }
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (isNewProject)
+        {
+            await ProjectApiClient.CreateProjectAsync(project);
+        }
+        else if (Id != null)
+        {
+            await ProjectApiClient.UpdateProjectAsync(Id, project);
+        }
+
+        Navigation.NavigateTo("/project-list");
+    }
+
+    private void EditDefinition(string definition)
+    {
+        currentDefinition = new AddEditDefinitionViewModel { Definition = definition };
+        isEditingDefinition = true;
+        editingDefinitionIndex = researchQuestions.Definitions.IndexOf(definition);
+    }
+
+    private async Task HandleDefinitionSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(currentDefinition.Definition))
+            return;
+
+        if (Id != null)
+        {
+            if (isEditingDefinition)
+            {
+                await ProjectApiClient.UpdateDefinitionAsync(Id, editingDefinitionIndex, currentDefinition);
+                researchQuestions.Definitions[editingDefinitionIndex] = currentDefinition.Definition;
+            }
+            else
+            {
+                await ProjectApiClient.AddDefinitionAsync(Id, currentDefinition);
+                researchQuestions.Definitions.Add(currentDefinition.Definition);
+            }
+
+            currentDefinition = new AddEditDefinitionViewModel();
+            isEditingDefinition = false;
+            editingDefinitionIndex = -1;
+        }
+    }
+
+    private async Task DeleteDefinition(string definition)
+    {
+        if (Id != null)
+        {
+            var index = researchQuestions.Definitions.IndexOf(definition);
+            await ProjectApiClient.DeleteDefinitionAsync(Id, index);
+            researchQuestions.Definitions.RemoveAt(index);
+        }
+    }
+
+    private void EditResearchQuestion(QuestionViewModel question)
+    {
+        currentQuestion = new AddEditResearchQuestionViewModel { Text = question.Text, Definitions = question.Definitions };
+        isEditingQuestion = true;
+        editingQuestionIndex = researchQuestions.Questions.IndexOf(question);
+    }
+
+    private async Task HandleQuestionSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(currentQuestion.Text))
+            return;
+
+        if (Id != null)
+        {
+            if (isEditingQuestion)
+            {
+                await ProjectApiClient.UpdateResearchQuestionAsync(Id, editingQuestionIndex, currentQuestion);
+                researchQuestions.Questions[editingQuestionIndex] = new QuestionViewModel { Text = currentQuestion.Text, Definitions = currentQuestion.Definitions };
+            }
+            else
+            {
+                await ProjectApiClient.AddResearchQuestionAsync(Id, currentQuestion);
+                researchQuestions.Questions.Add(new QuestionViewModel { Text = currentQuestion.Text, Definitions = currentQuestion.Definitions });
+            }
+
+            currentQuestion = new AddEditResearchQuestionViewModel();
+            isEditingQuestion = false;
+            editingQuestionIndex = -1;
+        }
+    }
+
+    private async Task DeleteResearchQuestion(QuestionViewModel question)
+    {
+        if (Id != null)
+        {
+            var index = researchQuestions.Questions.IndexOf(question);
+            await ProjectApiClient.DeleteResearchQuestionAsync(Id, index);
+            researchQuestions.Questions.RemoveAt(index);
+        }
+    }
+
+    private void EditQuestionDefinition(QuestionViewModel question, string definition)
+    {
+        currentQuestionDefinition = definition;
+        isEditingQuestionDefinition = true;
+        editingQuestionDefinitionIndex = question.Definitions.IndexOf(definition);
+    }
+
+    private async Task HandleQuestionDefinitionSubmit(QuestionViewModel question)
+    {
+        if (string.IsNullOrWhiteSpace(currentQuestionDefinition))
+            return;
+
+        if (Id != null)
+        {
+            if (isEditingQuestionDefinition)
+            {
+                question.Definitions[editingQuestionDefinitionIndex] = currentQuestionDefinition;
+            }
+            else
+            {
+                question.Definitions.Add(currentQuestionDefinition);
+            }
+
+            currentQuestionDefinition = string.Empty;
+            isEditingQuestionDefinition = false;
+            editingQuestionDefinitionIndex = -1;
+
+            // Update the entire research question to make the change atomic
+            var index = researchQuestions.Questions.IndexOf(question);
+            await ProjectApiClient.UpdateResearchQuestionAsync(Id, index, new AddEditResearchQuestionViewModel
+                {
+                    Text = question.Text,
+                    Definitions = question.Definitions
+                });
+        }
+    }
+
+    private async Task DeleteQuestionDefinition(QuestionViewModel question, string definition)
+    {
+        if (Id != null)
+        {
+            var index = question.Definitions.IndexOf(definition);
+            question.Definitions.RemoveAt(index);
+
+            // Update the entire research question to make the change atomic
+            var questionIndex = researchQuestions.Questions.IndexOf(question);
+            await ProjectApiClient.UpdateResearchQuestionAsync(Id, questionIndex, new AddEditResearchQuestionViewModel
+                {
+                    Text = question.Text,
+                    Definitions = question.Definitions
+                });
+        }
+    }
+}

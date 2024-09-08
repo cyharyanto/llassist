@@ -48,13 +48,29 @@ Handles file I/O operations:
 - Writing results to CSV files
 
 ## Usage
+
+### Console Mode
+
 ```
-dotnet run <input_csv_file> <research_questions_file>
+dotnet run --project llassist.AppConsole <input_csv_file> <research_questions_file>
 ```
 
 Where:
 - `<input_csv_file>` is the path to the CSV file containing the articles
 - `<research_questions_file>` is the path to a text file containing the research questions (one per line)
+
+### Web Application
+
+Run docker compose in the root directory
+```
+docker-compose up -d
+```
+
+Run DB migrations in ApiService dir
+```
+dotnet ef database update
+```
+
 
 ## Output
 
@@ -76,3 +92,9 @@ The program generates two output files:
 ## Disclaimer
 
 This tool is for research purposes. Ensure you have the necessary rights and permissions to process and analyze the articles.
+
+## Licensing
+1. This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+2. This project is a fork of llassist, which was originally MIT licensed. The original MIT-licensed code has been incorporated into this project. As per the terms of the MIT license, we have included the original MIT license text and copyright notice in our NOTICE file.
+3. All modifications and additions to the original code, as well as the project as a whole, are licensed under AGPL-3.0.
+4. For full license text and attribution details, please see the LICENSE and NOTICE files.

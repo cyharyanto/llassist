@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: NotSoGoodPassword
+      POSTGRES_DB: llassistdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  apphost:
+    build: .
+    depends_on:
+      - postgres
+    environment:
+      ConnectionStrings__LlassistAppDatabase: "Host=localhost;Database=llassistdb;Username=postgres;Password=NotSoGoodPassword;"
+    ports:
+      - "17007:17007"
+      - "15171:15171"
+
+volumes:
+  postgres-data:

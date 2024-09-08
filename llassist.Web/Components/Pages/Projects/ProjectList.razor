@@ -1,0 +1,201 @@
+﻿@page "/project-list"
+@rendermode InteractiveServer
+@inject ProjectApiClient ProjectApiClient
+@inject NavigationManager Navigation
+
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Projects</PageTitle>
+
+<h3>Projects</h3>
+
+<button class="btn btn-primary mb-3" @onclick="CreateProject">Create New Project</button>
+
+@if (projects == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var project in projects)
+            {
+                <tr @onclick="() => SelectProject(project.Id)"
+                    class="@(project.Id == selectedProjectId ? "table-active" : "") clickable-row">
+                    <td><strong>@project.Name</strong></td>
+                    <td>@project.Description</td>
+                    <td>
+                        <button class="btn btn-secondary me-2" @onclick:stopPropagation="true" @onclick="() => EditProject(project.Id)">Edit</button>
+                        <button class="btn btn-danger me-2" @onclick:stopPropagation="true" @onclick="() => DeleteProject(project.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (!string.IsNullOrEmpty(selectedProjectId))
+{
+    <div class="mt-4 mb-4">
+        <h4>Upload CSV for @selectedProjectName</h4>
+        <InputFile @key="inputFileKey" OnChange="HandleFileSelected" class="btn btn-primary">
+            <i class="fas fa-upload me-2"></i> Upload CSV
+        </InputFile>
+    </div>
+}
+
+@if (articles != null && articles.Any())
+{
+    <h4>Articles for @selectedProjectName</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Authors</th>
+                <th>Year</th>
+                <th>Abstract</th>
+                <th>Must Read</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var article in articles)
+            {
+                <tr>
+                    <td>@article.Title</td>
+                    <td>@article.Authors</td>
+                    <td>@article.Year</td>
+                    <td>@article.Abstract</td>
+                    <td>@article.MustRead</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else if (!string.IsNullOrEmpty(selectedProjectId))
+{
+    <p>No articles found for this project.</p>
+}
+
+<style>
+    .clickable-row {
+        cursor: pointer;
+    }
+
+        .clickable-row:hover {
+            background-color: #f8f9fa;
+        }
+
+    .btn-file {
+        position: relative;
+        overflow: hidden;
+    }
+
+        .btn-file input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            font-size: 100px;
+            text-align: right;
+            filter: alpha(opacity=0);
+            opacity: 0;
+            outline: none;
+            background: white;
+            cursor: inherit;
+            display: block;
+        }
+</style>
+
+@code {
+    private IEnumerable<ProjectViewModel>? projects;
+    private IEnumerable<ArticleViewModel>? articles;
+    private string? selectedProjectId;
+    private string? selectedProjectName;
+    private string inputFileKey = Guid.NewGuid().ToString();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjects();
+    }
+
+    private async Task LoadProjects()
+    {
+        projects = await ProjectApiClient.GetAllProjectsAsync();
+    }
+
+    private void CreateProject()
+    {
+        Navigation.NavigateTo("/projects/edit");
+    }
+
+    private void EditProject(string id)
+    {
+        Navigation.NavigateTo($"/projects/edit/{id}");
+    }
+
+    private async Task DeleteProject(string id)
+    {
+        await ProjectApiClient.DeleteProjectAsync(id);
+        await LoadProjects();
+        if (selectedProjectId == id)
+        {
+            selectedProjectId = null;
+            selectedProjectName = null;
+            articles = null;
+        }
+    }
+
+    private async Task SelectProject(string id)
+    {
+        if (selectedProjectId == id)
+        {
+            // Deselect if clicking the same project
+            selectedProjectId = null;
+            selectedProjectName = null;
+            articles = null;
+        }
+        else
+        {
+            selectedProjectId = id;
+            await LoadProjectDetails();
+        }
+    }
+
+    private async Task LoadProjectDetails()
+    {
+        if (!string.IsNullOrEmpty(selectedProjectId))
+        {
+            var project = await ProjectApiClient.GetProjectAsync(selectedProjectId);
+            if (project != null)
+            {
+                articles = project.Articles;
+                selectedProjectName = project.Name;
+            }
+        }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        if (e.File != null && !string.IsNullOrEmpty(selectedProjectId))
+        {
+            var file = e.File;
+            var result = await ProjectApiClient.UploadCSVAsync(selectedProjectId, file);
+            if (result != null)
+            {
+                articles = result.Articles;
+                StateHasChanged();
+                inputFileKey = Guid.NewGuid().ToString(); // Change the key to reset the file input
+            }
+        }
+    }
+}
