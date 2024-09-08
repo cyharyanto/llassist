@@ -102,7 +102,7 @@ public class ArticleService
         csv.WriteField(string.Join("; ", article.KeySemantics.Entities));
         csv.WriteField(string.Join("; ", article.KeySemantics.Keywords));
         csv.WriteField(article.MustRead);
-        for (int i = 0; i < article.Relevances.Length; i++)
+        for (int i = 0; i < article.Relevances.Count; i++)
         {
             csv.WriteField(article.Relevances[i].Question);
             csv.WriteField(article.Relevances[i].IsRelevant);

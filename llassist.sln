@@ -16,6 +16,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "llassist.Common", "llassist
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "llassist.AppConsole", "llassist.AppConsole\llassist.AppConsole.csproj", "{FBF65BB2-6E06-4779-A305-E38F70EDD702}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C95C14E9-C014-4374-92B1-8731EA84E1A7}"
+	ProjectSection(SolutionItems) = preProject
+		.dockerignore = .dockerignore
+		docker-compose.yml = docker-compose.yml
+		Dockerfile = Dockerfile
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

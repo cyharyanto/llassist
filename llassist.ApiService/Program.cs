@@ -7,6 +7,8 @@ using llassist.Common.Models;
 using llassist.ApiService.Controllers;
 using llassist.ApiService.Repositories;
 using llassist.ApiService.Services;
+using Microsoft.EntityFrameworkCore;
+using llassist.ApiService.Repositories.Specifications;
 
 internal class Program
 {
@@ -20,8 +22,13 @@ internal class Program
         // Add services to the container.
         builder.Services.AddProblemDetails();
 
-        // Register the InMemoryRepository.
-        builder.Services.AddSingleton<ICRUDRepository<Ulid, Project>, InMemoryRepository<Project>>();
+        // Register the persistence repository.
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        {
+            options.UseNpgsql(builder.Configuration.GetConnectionString("LlassistAppDatabase"));
+        });
+        builder.Services.AddScoped<ICRUDRepository<Ulid, Project, ProjectSearchSpec>, ProjectRepository>();
+        builder.Services.AddScoped<ICRUDRepository<Ulid, Article, ArticleSearchSpec>, ArticleRepository>();
 
         // Register the Services
         builder.Services.AddScoped<ProjectService>();
