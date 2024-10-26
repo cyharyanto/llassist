@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using llassist.ApiService.Repositories;
@@ -11,9 +12,11 @@ using llassist.ApiService.Repositories;
 namespace llassist.ApiService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241007043522_ConvertArticlesWeakEntity")]
+    partial class ConvertArticlesWeakEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -43,9 +46,6 @@ namespace llassist.ApiService.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("MustRead")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("ProjectId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -69,18 +69,7 @@ namespace llassist.ApiService.Migrations
                     b.Property<string>("ArticleId")
                         .HasColumnType("text");
 
-                    b.Property<int>("KeySemanticIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("ArticleId", "KeySemanticIndex");
+                    b.HasKey("ArticleId");
 
                     b.ToTable("ArticleKeySemantics", (string)null);
                 });
@@ -93,37 +82,13 @@ namespace llassist.ApiService.Migrations
                     b.Property<string>("EstimateRelevanceJobId")
                         .HasColumnType("text");
 
-                    b.Property<int>("RelevanceIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ContributionReason")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<double>("ContributionScore")
-                        .HasColumnType("double precision");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsContributing")
+                    b.Property<bool>("MustRead")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsRelevant")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Question")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("RelevanceReason")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<double>("RelevanceScore")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("ArticleId", "EstimateRelevanceJobId", "RelevanceIndex");
+                    b.HasKey("ArticleId", "EstimateRelevanceJobId");
 
                     b.ToTable("ArticleRelevances", (string)null);
                 });
@@ -280,12 +245,42 @@ namespace llassist.ApiService.Migrations
             modelBuilder.Entity("llassist.Common.Models.ArticleKeySemantic", b =>
                 {
                     b.HasOne("llassist.Common.Models.Article", "Article")
-                        .WithMany("ArticleKeySemantics")
-                        .HasForeignKey("ArticleId")
+                        .WithOne("ArticleKeySemantic")
+                        .HasForeignKey("llassist.Common.Models.ArticleKeySemantic", "ArticleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.OwnsOne("llassist.Common.Models.KeySemantics", "KeySemantics", b1 =>
+                        {
+                            b1.Property<string>("ArticleKeySemanticArticleId")
+                                .HasColumnType("text");
+
+                            b1.Property<string[]>("Entities")
+                                .IsRequired()
+                                .HasColumnType("text[]");
+
+                            b1.Property<string[]>("Keywords")
+                                .IsRequired()
+                                .HasColumnType("text[]");
+
+                            b1.Property<string[]>("Topics")
+                                .IsRequired()
+                                .HasColumnType("text[]");
+
+                            b1.HasKey("ArticleKeySemanticArticleId");
+
+                            b1.ToTable("ArticleKeySemantics");
+
+                            b1.ToJson("KeySemantics");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ArticleKeySemanticArticleId");
+                        });
+
                     b.Navigation("Article");
+
+                    b.Navigation("KeySemantics")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("llassist.Common.Models.ArticleRelevance", b =>
@@ -296,7 +291,55 @@ namespace llassist.ApiService.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.OwnsMany("llassist.Common.Models.Relevance", "Relevances", b1 =>
+                        {
+                            b1.Property<string>("ArticleRelevanceArticleId")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("ArticleRelevanceEstimateRelevanceJobId")
+                                .HasColumnType("text");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("ContributionReason")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<double>("ContributionScore")
+                                .HasColumnType("double precision");
+
+                            b1.Property<bool>("IsContributing")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("IsRelevant")
+                                .HasColumnType("boolean");
+
+                            b1.Property<string>("Question")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("RelevanceReason")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<double>("RelevanceScore")
+                                .HasColumnType("double precision");
+
+                            b1.HasKey("ArticleRelevanceArticleId", "ArticleRelevanceEstimateRelevanceJobId", "Id");
+
+                            b1.ToTable("ArticleRelevances");
+
+                            b1.ToJson("Relevances");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ArticleRelevanceArticleId", "ArticleRelevanceEstimateRelevanceJobId");
+                        });
+
                     b.Navigation("Article");
+
+                    b.Navigation("Relevances");
                 });
 
             modelBuilder.Entity("llassist.Common.Models.ProjectDefinition", b =>
@@ -345,7 +388,7 @@ namespace llassist.ApiService.Migrations
 
             modelBuilder.Entity("llassist.Common.Models.Article", b =>
                 {
-                    b.Navigation("ArticleKeySemantics");
+                    b.Navigation("ArticleKeySemantic");
 
                     b.Navigation("ArticleRelevances");
                 });

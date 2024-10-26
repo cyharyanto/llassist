@@ -9,6 +9,8 @@
   <ItemGroup>
     <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.2.0" />
     <PackageReference Include="CsvHelper" Version="33.0.1" />
+    <PackageReference Include="DotNetWorkQueue" Version="0.7.6" />
+    <PackageReference Include="DotNetWorkQueue.Transport.PostgreSQL" Version="0.7.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.8">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

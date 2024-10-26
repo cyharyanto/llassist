@@ -1,60 +1,32 @@
 ﻿using llassist.ApiService.Repositories.Specifications;
-using llassist.Common;
 using llassist.Common.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace llassist.ApiService.Repositories;
 
-public class ProjectRepository : ICRUDRepository<Ulid, Project, ProjectSearchSpec>
+public class ProjectRepository(ApplicationDbContext context) : CRUDBaseRepository<Ulid, Project, BaseSearchSpec>(context)
 {
-    private readonly ApplicationDbContext _context;
-
-    public ProjectRepository(ApplicationDbContext context)
+    public override DbSet<Project> GetDbSet()
     {
-        _context = context;
+        return _context.Projects;
     }
 
-    public async Task<Project> CreateAsync(Project project)
+    public override async Task<Project?> ReadAsync(Ulid id)
     {
-        _context.Projects.Add(project);
-        await _context.SaveChangesAsync();
-        return project;
+        return await GetDbSet()
+            .Include(p => p.Articles.OrderBy(a => a.Id))
+                .ThenInclude(a => a.ArticleKeySemantics.OrderBy(aks => aks.KeySemanticIndex))
+            .Include(p => p.Articles.OrderBy(a => a.Id))
+                .ThenInclude(a => a.ArticleRelevances.OrderBy(ar => ar.EstimateRelevanceJobId))
+            .Include(p => p.ProjectDefinitions.OrderBy(pd => pd.Id))
+            .Include(p => p.ResearchQuestions.OrderBy(rq => rq.Id))
+                .ThenInclude(rq => rq.QuestionDefinitions.OrderBy(qd => qd.Id))
+            .FirstOrDefaultAsync(p => p.Id == id);
     }
 
-    public async Task<bool> DeleteAsync(Ulid id)
+    public override async Task<IEnumerable<Project>> ReadAllAsync()
     {
-        var project = _context.Projects.Find(id);
-        if (project == null)
-        {
-            return false;
-        }
-
-        _context.Projects.Remove(project);
-        await _context.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task<IEnumerable<Project>> ReadAllAsync()
-    {
-        return await _context.Projects.ToListAsync(); // Eager loading is disabled to avoid heavy load on large datasets
-    }
-
-    public async Task<Project?> ReadAsync(Ulid id)
-    {
-        return await _context.Projects
-                             .Include(p => p.Articles)
-                             .FirstOrDefaultAsync(p => p.Id == id);
-    }
-
-    public Task<IEnumerable<Project>> ReadWithSearchSpecAsync(ProjectSearchSpec searchSpec)
-    {
-        throw new NotImplementedException();
-    }
-
-    public async Task<Project> UpdateAsync(Project project)
-    {
-        _context.Entry(project).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
-        return project;
+        // Eager loading is disabled to avoid heavy load on large datasets
+        return await GetDbSet().ToListAsync();
     }
 }

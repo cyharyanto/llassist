@@ -9,6 +9,15 @@ using llassist.ApiService.Repositories;
 using llassist.ApiService.Services;
 using Microsoft.EntityFrameworkCore;
 using llassist.ApiService.Repositories.Specifications;
+using DotNetWorkQueue.Configuration;
+using DotNetWorkQueue;
+using DotNetWorkQueue.Transport.PostgreSQL.Basic;
+using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
+using llassist.ApiService.Executors;
+using DotNetWorkQueue.Queue;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Text.Json;
 
 internal class Program
 {
@@ -23,12 +32,20 @@ internal class Program
         builder.Services.AddProblemDetails();
 
         // Register the persistence repository.
+        var dbConnectionString = builder.Configuration.GetConnectionString("LlassistAppDatabase");
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
         {
-            options.UseNpgsql(builder.Configuration.GetConnectionString("LlassistAppDatabase"));
+            options.UseNpgsql(dbConnectionString);
         });
-        builder.Services.AddScoped<ICRUDRepository<Ulid, Project, ProjectSearchSpec>, ProjectRepository>();
+        builder.Services.AddScoped<ICRUDRepository<Ulid, Project, BaseSearchSpec>, ProjectRepository>();
         builder.Services.AddScoped<ICRUDRepository<Ulid, Article, ArticleSearchSpec>, ArticleRepository>();
+        builder.Services.AddScoped<ICRUDRepository<Ulid, EstimateRelevanceJob, EstimateRelevanceJobSearchSpec>, EstimateRelevanceJobRepository>();
+
+        // Register background task processing
+        ConfigureQueue(builder.Services, builder.Configuration);
+        builder.Services.AddScoped<IArticleRelevanceService, ArticleRelevanceService>();
+        builder.Services.AddScoped<IEstimateRelevanceService, EstimateRelevanceService>();
+        builder.Services.AddSingleton<BackgroundTaskExecutor>();
 
         // Register the Services
         builder.Services.AddScoped<ProjectService>();
@@ -39,7 +56,7 @@ internal class Program
             var openAIAPIKey = configuration["OpenAI:ApiKey"];
             return new LLMService(openAIAPIKey);
         });
-        builder.Services.AddScoped<NLPService>();
+        builder.Services.AddScoped<INLPService, NLPService>();
 
         // Register the Controllers
         builder.Services.AddControllers();
@@ -51,6 +68,9 @@ internal class Program
         });
 
         var app = builder.Build();
+
+        // Immediately initiate the queue consumer
+        var backgroundTaskExecutor = app.Services.GetRequiredService<BackgroundTaskExecutor>();
 
         // Configure the HTTP request pipeline.
         app.UseExceptionHandler();
@@ -73,5 +93,65 @@ internal class Program
         app.MapDefaultEndpoints();
 
         app.Run();
+    }
+
+    private static void ConfigureQueue(IServiceCollection services, IConfiguration configuration)
+    {
+        // Register queue options
+        var queueConfiguration = new QueueOptions();
+        configuration.GetSection(QueueOptions.SectionName).Bind(queueConfiguration);
+        services.Configure<QueueOptions>(configuration.GetSection(QueueOptions.SectionName));
+
+        var queueName = queueConfiguration.QueueName;
+        var dbConnectionString = configuration.GetConnectionString("LlassistAppDatabase");
+        var queueConnection = new QueueConnection(queueName, dbConnectionString);
+
+        // Register queue container, create the queue if it doesn't exist
+        services.AddSingleton(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<Program>>();
+
+            using (var createQueueContainer = new QueueCreationContainer<PostgreSqlMessageQueueInit>())
+            {
+                using var createQueue = createQueueContainer.GetQueueCreation<PostgreSqlMessageQueueCreation>(queueConnection);
+                if (!createQueue.QueueExists)
+                {
+                    logger.LogInformation("Queue {QueueName} does not exist. Creating queue...", queueName);
+
+                    createQueue.Options.EnableDelayedProcessing = queueConfiguration.EnableDelayedProcessing;
+                    createQueue.Options.EnableHeartBeat = queueConfiguration.EnableHeartBeat;
+                    createQueue.Options.EnableMessageExpiration = queueConfiguration.EnableMessageExpiration;
+                    createQueue.Options.EnableStatus = queueConfiguration.EnableStatus;
+
+                    logger.LogInformation("Queue options set: EnableDelayedProcessing={EnableDelayedProcessing}, EnableHeartBeat={EnableHeartBeat}, EnableMessageExpiration={EnableMessageExpiration}, EnableStatus={EnableStatus}",
+                        createQueue.Options.EnableDelayedProcessing,
+                        createQueue.Options.EnableHeartBeat,
+                        createQueue.Options.EnableMessageExpiration,
+                        createQueue.Options.EnableStatus);
+
+                    createQueue.CreateQueue();
+                    logger.LogInformation("Queue {QueueName} created successfully", queueName);
+                }
+            }
+
+            var queueContainer = new QueueContainer<PostgreSqlMessageQueueInit>();
+            return queueContainer;
+        });
+
+        // Register queue producer
+        services.AddSingleton(sp =>
+        {
+            var queueContainer = sp.GetRequiredService<QueueContainer<PostgreSqlMessageQueueInit>>();
+            return queueContainer.CreateProducer<BackgroundTask>(queueConnection);
+        });
+        services.AddScoped<ProjectProcessingService>();
+
+        // Register queue consumer
+        services.AddSingleton(sp =>
+        {
+            var queueContainer = sp.GetRequiredService<QueueContainer<PostgreSqlMessageQueueInit>>();
+            var consumerQueue = queueContainer.CreateConsumer(queueConnection);
+            return consumerQueue;
+        });
     }
 }

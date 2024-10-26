@@ -7,7 +7,14 @@ using llassist.Common.Models;
 
 namespace llassist.ApiService.Services;
 
-public class NLPService
+public interface INLPService
+{
+    Task<KeySemantics> ExtractKeySemantics(string content);
+    Task<Relevance> EstimateRevelance(string content, string contentType, string question, string[] definitions);
+    Task<Dictionary<string, float[]>> GenerateEmbeddings(string[] keywords, int dimensions);
+}
+
+public class NLPService : INLPService
 {
     private readonly LLMService _llmService;
     private readonly ILogger<NLPService> _logger;

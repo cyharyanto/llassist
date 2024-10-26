@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 
 using llassist.ApiService.Services;
 using llassist.Common.Models;
+using llassist.Common.Models.V1;
+using llassist.Common.Mappers;
 
 namespace llassist.AppConsole;
 
@@ -58,7 +60,9 @@ class Program
         var llmService = new LLMService("nothing_to_see_here");
         var nlpService = new NLPService(llmService, logger);
 
-        var articles = ArticleService.ReadArticlesFromCsv(inputFile);
+        // Checkpoint
+        var projectId = Ulid.NewUlid();
+        var articles = ArticleService.ReadArticlesFromCsv(new StringReader(inputFile), projectId);
         var csvWriter = ArticleService.BeginCsvWriting(csvOutputFile, researchQuestions.Questions.Select(q => q.Text).ToArray());
 
         for (int i = 0; i < articles.Count; i++)
@@ -69,13 +73,13 @@ class Program
             Console.WriteLine($"Article: {article.Title}");
 
             var keySemantics = await nlpService.ExtractKeySemantics($"Title: {article.Title}\n Abstract: {article.Abstract}");
-            article.KeySemantics = keySemantics;
+            article.ArticleKeySemantics = ModelMappers.ToArticleKeySemantics(article.Id, keySemantics);
             Console.WriteLine($"Topics: {string.Join(", ", keySemantics.Topics)}");
             Console.WriteLine($"Entities: {string.Join(", ", keySemantics.Entities)}");
             Console.WriteLine($"Keywords: {string.Join(", ", keySemantics.Keywords)}");
 
             bool mustRead = false;
-            article.Relevances = new List<Relevance>();
+            var relevanceList = new List<Relevance>();
             for (int j = 0; j < researchQuestions.Questions.Count; j++)
             {
                 var researchQuestion = researchQuestions.Questions[j];
@@ -83,12 +87,15 @@ class Program
                 var relevance = await nlpService.EstimateRevelance(
                     $"Title: {article.Title}\n Abstract: {article.Abstract} \n Metadata: {JsonSerializer.Serialize(keySemantics)}", "abstract",
                     researchQuestion.Text, combinedDefinitions);
-                article.Relevances.Add(relevance);
+                relevanceList.Add(relevance);
                 Console.WriteLine($"RQ-{j + 1} -- IR:{relevance.IsRelevant} RS:{relevance.RelevanceScore} IC:{relevance.IsContributing} CS:{relevance.ContributionScore}");
                 Console.WriteLine($"\t>> RR: {relevance.RelevanceReason.Substring(0, Math.Min(120, relevance.RelevanceReason.Length))}...");
                 Console.WriteLine($"\t>> CR: {relevance.ContributionReason.Substring(0, Math.Min(120, relevance.ContributionReason.Length))}...");
                 mustRead = mustRead || relevance.IsRelevant || relevance.IsContributing;
             }
+
+            var jobId = Ulid.NewUlid();
+            article.ArticleRelevances = ModelMappers.ToArticleRelevances(article.Id, jobId, relevanceList);
             article.MustRead = mustRead;
             Console.WriteLine($"Decision: {(mustRead ? "Must Read" : "Skip")}\n");
 

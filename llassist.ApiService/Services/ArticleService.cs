@@ -5,12 +5,15 @@ using CsvHelper;
 using CsvHelper.Configuration;
 
 using llassist.Common.Models;
+using llassist.Common.Mappers;
+using llassist.Common.ViewModels;
+using System.Globalization;
 
 namespace llassist.ApiService.Services;
 
 public class ArticleService
 {
-    public static IList<Article> ReadArticlesFromCsv(StreamReader reader)
+    public static IList<Article> ReadArticlesFromCsv(TextReader reader, Ulid projectId)
     {
         var csvConfig = new CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
         {
@@ -33,6 +36,7 @@ public class ArticleService
                 DOI = csv.GetField("DOI") ?? string.Empty,
                 Link = csv.GetField("Link") ?? csv.GetField("PDF Link") ?? string.Empty,
                 Abstract = csv.GetField("Abstract") ?? string.Empty,
+                ProjectId = projectId
             };
             articles.Add(article);
         }
@@ -40,7 +44,7 @@ public class ArticleService
         return articles;
     }
 
-    public static void WriteArticlesToJson(List<Article> articles, string filePath)
+    public static void WriteArticlesToJson(IList<Article> articles, string filePath)
     {
         var options = new JsonSerializerOptions
         {
@@ -98,20 +102,22 @@ public class ArticleService
         csv.WriteField(article.DOI);
         csv.WriteField(article.Link);
         csv.WriteField(article.Abstract);
-        csv.WriteField(string.Join("; ", article.KeySemantics.Topics));
-        csv.WriteField(string.Join("; ", article.KeySemantics.Entities));
-        csv.WriteField(string.Join("; ", article.KeySemantics.Keywords));
+        csv.WriteField(string.Join("; ", article.ArticleKeySemantics.Where(t => t.Type == ArticleKeySemantic.TypeTopic)));
+        csv.WriteField(string.Join("; ", article.ArticleKeySemantics.Where(t => t.Type == ArticleKeySemantic.TypeEntity)));
+        csv.WriteField(string.Join("; ", article.ArticleKeySemantics.Where(t => t.Type == ArticleKeySemantic.TypeKeyword)));
         csv.WriteField(article.MustRead);
-        for (int i = 0; i < article.Relevances.Count; i++)
+
+        foreach (var relevance in article.ArticleRelevances)
         {
-            csv.WriteField(article.Relevances[i].Question);
-            csv.WriteField(article.Relevances[i].IsRelevant);
-            csv.WriteField(article.Relevances[i].IsContributing);
-            csv.WriteField(article.Relevances[i].RelevanceScore);
-            csv.WriteField(article.Relevances[i].ContributionScore);
-            csv.WriteField(article.Relevances[i].RelevanceReason);
-            csv.WriteField(article.Relevances[i].ContributionReason);
+            csv.WriteField(relevance.Question);
+            csv.WriteField(relevance.IsRelevant);
+            csv.WriteField(relevance.IsContributing);
+            csv.WriteField(relevance.RelevanceScore);
+            csv.WriteField(relevance.ContributionScore);
+            csv.WriteField(relevance.RelevanceReason);
+            csv.WriteField(relevance.ContributionReason);
         }
+
         csv.NextRecord();
         writer.Flush();
     }
@@ -119,5 +125,53 @@ public class ArticleService
     public static void EndCsvWriting(StreamWriter writer)
     {
         writer.Close();
+    }
+
+    // ...
+
+    public static byte[] WriteProcessToCsv(ProcessResultViewModel processedResults)
+    {
+        var csvConfig = new CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
+        {
+            Delimiter = ",", // Set the delimiter to a comma
+            Escape = '"', // Set the escape character to a double quote
+            Encoding = Encoding.UTF8, // Set the encoding to UTF-8
+            HasHeaderRecord = true, // Indicate that the CSV file has a header record
+        };
+        using var memoryStream = new MemoryStream();
+
+        using (var streamWriter = new StreamWriter(memoryStream))
+        {
+            using var csvWriter = new CsvWriter(streamWriter, csvConfig);
+
+            // Write the header
+            csvWriter.WriteField("Title");
+            csvWriter.WriteField("Authors");
+            csvWriter.WriteField("Year");
+            csvWriter.WriteField("Abstract");
+            csvWriter.WriteField("MustRead");
+            csvWriter.WriteField("Question");
+            csvWriter.WriteField("RelevanceScore");
+            csvWriter.WriteField("IsRelevant");
+            csvWriter.NextRecord();
+
+            foreach (var article in processedResults.ProcessedArticles)
+            {
+                foreach (var relevance in article.Relevances)
+                {
+                    csvWriter.WriteField(article.Title);
+                    csvWriter.WriteField(article.Authors);
+                    csvWriter.WriteField(article.Year);
+                    csvWriter.WriteField(article.Abstract);
+                    csvWriter.WriteField(article.MustRead);
+                    csvWriter.WriteField(relevance.Question);
+                    csvWriter.WriteField(relevance.RelevanceScore);
+                    csvWriter.WriteField(relevance.IsRelevant);
+                    csvWriter.NextRecord();
+                }
+            }
+        }
+
+        return memoryStream.ToArray();
     }
 }

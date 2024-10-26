@@ -1,4 +1,4 @@
-﻿namespace llassist.Common.Models;
+﻿namespace llassist.Common.Models.V1;
 
 public class ResearchQuestions
 {
