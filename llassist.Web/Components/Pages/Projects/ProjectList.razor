@@ -24,7 +24,7 @@ else
             <tr>
                 <th>Name</th>
                 <th>Description</th>
-                <th>Actions</th>
+                <th class="text-end">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -35,10 +35,16 @@ else
                     <td><strong>@project.Name</strong></td>
                     <td>@project.Description</td>
                     <td>
-                        <button class="btn btn-secondary me-2" @onclick:stopPropagation="true" @onclick="() => EditProject(project.Id)">Edit</button>
-                        <button class="btn btn-danger me-2" @onclick:stopPropagation="true" @onclick="() => DeleteProject(project.Id)">Delete</button>
-                        <button class="btn btn-primary me-2" @onclick:stopPropagation="true" @onclick="() => ProcessProject(project.Id)">Process</button>
-                        <button class="btn btn-success me-2" @onclick:stopPropagation="true" @onclick="() => DownloadProject(project.Id)">Download</button>
+                        <div class="action-buttons-grid">
+                            <div class="action-buttons-row">
+                                <button class="btn btn-secondary" @onclick:stopPropagation="true" @onclick="() => EditProject(project.Id)">Edit</button>
+                                <button class="btn btn-danger" @onclick:stopPropagation="true" @onclick="() => DeleteProject(project.Id)">Delete</button>
+                            </div>
+                            <div class="action-buttons-row">
+                                <button class="btn btn-primary" @onclick:stopPropagation="true" @onclick="() => ProcessProject(project.Id)">Process</button>
+                                <button class="btn btn-success" @onclick:stopPropagation="true" @onclick="() => DownloadProject(project.Id)">Download</button>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             }
@@ -48,11 +54,18 @@ else
 
 @if (!string.IsNullOrEmpty(selectedProjectId))
 {
-    <div class="mt-4 mb-4">
-        <h4>Upload CSV for @selectedProjectName</h4>
-        <InputFile @key="inputFileKey" OnChange="HandleFileSelected" class="btn btn-primary">
-            <i class="fas fa-upload me-2"></i> Upload CSV
-        </InputFile>
+    <div class="content-card">
+        <h4>Upload Papers for @selectedProjectName</h4>
+        <div class="file-upload-area">
+            <InputFile @key="inputFileKey" OnChange="HandleFileSelected" class="d-none" id="fileInput" />
+            <label for="fileInput" class="mb-0 w-100">
+                <div class="text-center">
+                    <i class="bi bi-cloud-upload fs-2 mb-2"></i>
+                    <p class="mb-1">Upload a file or drag and drop</p>
+                    <p class="text-muted small">CSV, RIS, or BibTeX up to 10MB</p>
+                </div>
+            </label>
+        </div>
     </div>
 }
 
@@ -62,22 +75,29 @@ else
     <table class="table">
         <thead>
             <tr>
-                <th>Title</th>
-                <th>Authors</th>
-                <th>Year</th>
+                <th style="width: 30%">Title & Authors</th>
+                <th style="width: 10%">Year</th>
                 <th>Abstract</th>
-                <th>Must Read</th>
+                <th style="width: 100px" class="text-center">Must Read</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var article in articles)
             {
                 <tr>
-                    <td>@article.Title</td>
-                    <td>@article.Authors</td>
-                    <td>@article.Year</td>
-                    <td>@article.Abstract</td>
-                    <td>@article.MustRead</td>
+                    <td>
+                        <div class="article-title">@article.Title</div>
+                        <div class="article-authors">@article.Authors</div>
+                    </td>
+                    <td class="text-center">@article.Year</td>
+                    <td class="abstract-column">
+                        <p>@article.Abstract</p>
+                    </td>
+                    <td class="text-center">
+                        <div class="must-read-indicator @(article.MustRead ? "must-read-true" : "must-read-false")">
+                            @(article.MustRead ? "Yes" : "No")
+                        </div>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -91,32 +111,81 @@ else if (!string.IsNullOrEmpty(selectedProjectId))
 <style>
     .clickable-row {
         cursor: pointer;
+        transition: background-color 0.2s ease;
     }
 
-        .clickable-row:hover {
-            background-color: #f8f9fa;
-        }
+    .clickable-row:hover {
+        background-color: #f8f9fa;
+    }
 
-    .btn-file {
-        position: relative;
+    .table-active {
+        background-color: #e9ecef;
+    }
+
+    .action-buttons-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        justify-content: end;
+        min-width: 200px;
+    }
+
+    .action-buttons-row {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+
+    .article-title {
+        font-weight: 600;
+        color: #2B4380;
+        margin-bottom: 0.25rem;
+    }
+
+    .article-authors {
+        font-size: 0.875rem;
+        color: #666;
+    }
+
+    .abstract-column p {
+        margin: 0;
         overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 6;
+        -webkit-box-orient: vertical;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        max-height: 9em;
     }
 
-        .btn-file input[type=file] {
-            position: absolute;
-            top: 0;
-            right: 0;
-            min-width: 100%;
-            min-height: 100%;
-            font-size: 100px;
-            text-align: right;
-            filter: alpha(opacity=0);
-            opacity: 0;
-            outline: none;
-            background: white;
-            cursor: inherit;
-            display: block;
-        }
+    .table td.abstract-column {
+        max-width: 500px;
+        padding-right: 2rem;
+    }
+
+    .must-read-indicator {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .must-read-true {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .must-read-false {
+        background-color: #f5f5f5;
+        color: #757575;
+    }
+
+    .btn {
+        min-width: 90px;
+        width: 100%;
+    }
 </style>
 
 <script>
