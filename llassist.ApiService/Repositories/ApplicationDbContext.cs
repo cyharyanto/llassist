@@ -14,6 +14,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<QuestionDefinition> QuestionDefinitions { get; set; }
     public DbSet<ResearchQuestion> ResearchQuestions { get; set; }
     public DbSet<Snapshot> Snapshots { get; set; }
+    public DbSet<AppSetting> AppSettings { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
