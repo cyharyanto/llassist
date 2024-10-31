@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject ProjectApiClient ProjectApiClient
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
@@ -36,6 +37,8 @@ else
                     <td>
                         <button class="btn btn-secondary me-2" @onclick:stopPropagation="true" @onclick="() => EditProject(project.Id)">Edit</button>
                         <button class="btn btn-danger me-2" @onclick:stopPropagation="true" @onclick="() => DeleteProject(project.Id)">Delete</button>
+                        <button class="btn btn-primary me-2" @onclick:stopPropagation="true" @onclick="() => ProcessProject(project.Id)">Process</button>
+                        <button class="btn btn-success me-2" @onclick:stopPropagation="true" @onclick="() => DownloadProject(project.Id)">Download</button>
                     </td>
                 </tr>
             }
@@ -116,6 +119,17 @@ else if (!string.IsNullOrEmpty(selectedProjectId))
         }
 </style>
 
+<script>
+    window.downloadFileFromStream = (fileName, base64String) => {
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = "data:application/octet-stream;base64," + base64String;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
 @code {
     private IEnumerable<ProjectViewModel>? projects;
     private IEnumerable<ArticleViewModel>? articles;
@@ -195,6 +209,30 @@ else if (!string.IsNullOrEmpty(selectedProjectId))
                 articles = result.Articles;
                 StateHasChanged();
                 inputFileKey = Guid.NewGuid().ToString(); // Change the key to reset the file input
+            }
+        }
+    }
+
+    private async Task ProcessProject(string id)
+    {
+        if (!string.IsNullOrEmpty(id))
+        {
+            await ProjectApiClient.ProcessArticlesAsync(id);
+        }
+    }
+
+    private async Task DownloadProject(string id)
+    {
+        if (!string.IsNullOrEmpty(id))
+        {
+            var fileBytes = await ProjectApiClient.DownloadResultsAsync(id);
+            if (fileBytes != null && fileBytes.Length > 0)
+            {
+                // Create a download filename using the project name and current timestamp
+                var fileName = $"{selectedProjectName ?? "project"}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+                
+                // Use JSRuntime to trigger the file download
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, Convert.ToBase64String(fileBytes));
             }
         }
     }
