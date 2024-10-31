@@ -53,7 +53,14 @@ internal class Program
         builder.Services.AddSingleton<LLMService>(provider =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
-            var openAIAPIKey = configuration["OpenAI:ApiKey"];
+            var openAIAPIKey = configuration["OpenAI:ApiKey"] ??
+                Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+
+            if (string.IsNullOrEmpty(openAIAPIKey))
+            {
+                throw new InvalidOperationException("OpenAI API key not found in configuration or environment variables");
+            }
+
             return new LLMService(openAIAPIKey);
         });
         builder.Services.AddScoped<INLPService, NLPService>();
