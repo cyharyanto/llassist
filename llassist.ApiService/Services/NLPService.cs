@@ -7,7 +7,14 @@ using llassist.Common.Models;
 
 namespace llassist.ApiService.Services;
 
-public class NLPService
+public interface INLPService
+{
+    Task<KeySemantics> ExtractKeySemantics(string content);
+    Task<Relevance> EstimateRevelance(string content, string contentType, string question, string[] definitions);
+    Task<Dictionary<string, float[]>> GenerateEmbeddings(string[] keywords, int dimensions);
+}
+
+public class NLPService : INLPService
 {
     private readonly LLMService _llmService;
     private readonly ILogger<NLPService> _logger;
@@ -44,7 +51,7 @@ public class NLPService
         {
             _logger.LogError("Failed to parse JSON response: {Message}. Attempting to fix.", ex.Message);
             // Attempt to fix the JSON format using LLM
-            var kernel = _llmService.OllamaGemma2ChatCompletion();
+            var kernel = _llmService.GPT4oChatCompletion();
             var fixPrompt = """"
 Fix the JSON so it can be deserialized into the target object.
 
@@ -75,7 +82,7 @@ Return the fixed JSON in the following format:
 
     public async Task<KeySemantics> ExtractKeySemantics(string content)
     {
-        var kernel = _llmService.OllamaGemma2ChatCompletion();
+        var kernel = _llmService.GPT4oChatCompletion();
 
         var skPrompt = """"
 Semantically analyze the content to extract its topics, entities, and keywords.
@@ -106,7 +113,7 @@ Return the result in the following JSON format:
 
     public async Task<Relevance> EstimateRevelance(string content, string contentType, string question, string[] definitions)
     {
-        var kernel = _llmService.OllamaGemma2ChatCompletion();
+        var kernel = _llmService.GPT4oChatCompletion();
 
         var skPrompt = """"
 Analyze the following {{$contentType}}:

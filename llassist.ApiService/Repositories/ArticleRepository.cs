@@ -1,60 +1,29 @@
 ﻿using llassist.ApiService.Repositories.Specifications;
-using llassist.Common;
 using llassist.Common.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace llassist.ApiService.Repositories;
 
-public class ArticleRepository : ICRUDRepository<Ulid, Article, ArticleSearchSpec>
+public class ArticleRepository(ApplicationDbContext context) : CRUDBaseRepository<Ulid, Article, ArticleSearchSpec>(context)
 {
-    private readonly ApplicationDbContext _context;
-
-    public ArticleRepository(ApplicationDbContext context)
+    public override DbSet<Article> GetDbSet()
     {
-        _context = context;
+        return _context.Articles;
+    }
+    public override async Task<Article?> ReadAsync(Ulid id)
+    {
+        return await GetDbSet()
+            .Include(a => a.ArticleKeySemantics.OrderBy(aks => aks.KeySemanticIndex))
+            .Include(a => a.ArticleRelevances.OrderBy(ar => ar.EstimateRelevanceJobId))
+            .FirstOrDefaultAsync(a => a.Id == id);
     }
 
-    public async Task<Article> CreateAsync(Article article)
+    public override async Task<IEnumerable<Article>> ReadWithSearchSpecAsync(ArticleSearchSpec searchSpec)
     {
-        _context.Articles.Add(article);
-        await _context.SaveChangesAsync();
-        return article;
-    }
-
-    public async Task<bool> DeleteAsync(Ulid id)
-    {
-        var article = _context.Articles.Find(id);
-        if (article == null)
-        {
-            return false;
-        }
-
-        _context.Articles.Remove(article);
-        await _context.SaveChangesAsync();
-        return true;
-    }
-
-    public Task<IEnumerable<Article>> ReadAllAsync()
-    {
-        throw new NotImplementedException("This method is not supported for Articles");
-    }
-
-    public async Task<Article?> ReadAsync(Ulid id)
-    {
-        return await _context.Articles.FindAsync(id);
-    }
-
-    public async Task<IEnumerable<Article>> ReadWithSearchSpecAsync(ArticleSearchSpec searchSpec)
-    {
-        return await _context.Articles
+        return await GetDbSet()
             .Where(a => a.ProjectId == searchSpec.ProjectId)
+            .Include(a => a.ArticleKeySemantics.OrderBy(aks => aks.KeySemanticIndex))
+            .Include(a => a.ArticleRelevances.OrderBy(ar => ar.EstimateRelevanceJobId))
             .ToListAsync();
-    }
-
-    public async Task<Article> UpdateAsync(Article article)
-    {
-        _context.Entry(article).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
-        return article;
     }
 }

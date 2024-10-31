@@ -4,6 +4,7 @@ using llassist.Common.Models;
 using llassist.Common.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
+using System.Text.Json;
 
 namespace llassist.ApiService.Controllers;
 
@@ -12,14 +13,17 @@ namespace llassist.ApiService.Controllers;
 public class ProjectController : ControllerBase
 {
     private readonly ProjectService _projectService;
-    private readonly NLPService _nlpService;
+    private readonly INLPService _nlpService;
     private readonly ILogger<ProjectController> _logger;
 
-    public ProjectController(ProjectService projectService, NLPService nlpService, ILogger<ProjectController> logger)
+    private readonly ProjectProcessingService _projectProcessingService;
+
+    public ProjectController(ProjectService projectService, INLPService nlpService, ILogger<ProjectController> logger, ProjectProcessingService projectProcessingService)
     {
         _projectService = projectService;
         _nlpService = nlpService;
         _logger = logger;
+        _projectProcessingService = projectProcessingService;
     }
 
     [HttpPost("create")]
@@ -37,6 +41,7 @@ public class ProjectController : ControllerBase
         {
             return NotFound();
         }
+
         return Ok(project);
     }
 
@@ -81,7 +86,7 @@ public class ProjectController : ControllerBase
             return BadRequest("File is empty");
 
         var reader = new StreamReader(file.OpenReadStream());
-        var articles = ArticleService.ReadArticlesFromCsv(reader);
+        var articles = ArticleService.ReadArticlesFromCsv(reader, Ulid.Parse(projectId));
         var project = await _projectService.AddArticlesToProjectAsync(Ulid.Parse(projectId), articles);
 
         return Ok(project);
@@ -90,22 +95,53 @@ public class ProjectController : ControllerBase
     [HttpGet("process/{projectId}")]
     public async Task<IActionResult> ProcessArticles(string projectId)
     {
-        // Retrieve articles based on the id
-        // Process articles using NLPService
-        // Update progress and results
         var project = await _projectService.GetProjectAsync(Ulid.Parse(projectId));
+        if (project == null)
+        {
+            return NotFound();
+        }
+
+        // Check if there's ongoing processing for this project
+        // TODO: Implement locking mechanism to prevent multiple processing jobs
+        var jobProgress = await _projectProcessingService.GetJobProgress(Ulid.Parse(projectId));
+
+        if (!string.IsNullOrEmpty(jobProgress.JobId) && jobProgress.Progress < 100)
+        {
+            _logger.LogInformation("Processing job {jobId} is already in progress for project {projectId}", jobProgress.JobId, projectId);
+        }
+        else
+        {
+            await _projectProcessingService.EnqueuePreprocessingTask(Ulid.Parse(projectId));
+        }
 
         return Ok(project);
+    }
+
+    [HttpGet("progress/{projectId}")]
+    public async Task<IActionResult> GetProjectProgress(string projectId)
+    {
+        var project = await _projectService.GetProjectAsync(Ulid.Parse(projectId));
+        if (project == null)
+        {
+            return NotFound();
+        }
+
+        var jobProgress = await _projectProcessingService.GetJobProgress(Ulid.Parse(projectId));
+
+        return Ok(jobProgress);
     }
 
     [HttpGet("download/{projectId}")]
     public async Task<IActionResult> DownloadResults(string projectId)
     {
-        // Retrieve processed results
-        // Generate CSV file
-        // Return file for download
+        var processedResults = await _projectProcessingService.GetJobProgress(Ulid.Parse(projectId));
+        _logger.LogInformation("Result: {result}", JsonSerializer.Serialize(processedResults));
 
-        return File(new byte[0], "text/csv", "results.csv");
+        // Convert processedResults to CSV format
+        var csvData = ArticleService.WriteProcessToCsv(processedResults);
+
+        // Return the CSV file as a download
+        return File(csvData, "text/csv", "results.csv");
     }
 
     [HttpPost("{projectId}/definitions")]

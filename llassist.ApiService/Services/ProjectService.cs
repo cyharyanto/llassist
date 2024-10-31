@@ -1,5 +1,6 @@
 ﻿using llassist.ApiService.Repositories.Specifications;
 using llassist.Common;
+using llassist.Common.Mappers;
 using llassist.Common.Models;
 using llassist.Common.ViewModels;
 
@@ -7,9 +8,9 @@ namespace llassist.ApiService.Services;
 
 public class ProjectService
 {
-    private readonly ICRUDRepository<Ulid, Project, ProjectSearchSpec> _projectRepository;
+    private readonly ICRUDRepository<Ulid, Project, BaseSearchSpec> _projectRepository;
 
-    public ProjectService(ICRUDRepository<Ulid, Project, ProjectSearchSpec> projectRepository)
+    public ProjectService(ICRUDRepository<Ulid, Project, BaseSearchSpec> projectRepository)
     {
         _projectRepository = projectRepository;
     }
@@ -21,17 +22,18 @@ public class ProjectService
             Name = name,
             Description = description
         };
-        return ToViewModel(await _projectRepository.CreateAsync(project));
+        return ModelMappers.ToProjectViewModel(await _projectRepository.CreateAsync(project));
     }
 
     public async Task<ProjectViewModel?> GetProjectAsync(Ulid id)
     {
-        return await _projectRepository.ReadAsync(id) is Project project ? ToViewModel(project) : null;
+        return await _projectRepository.ReadAsync(id) is Project project ? 
+            ModelMappers.ToProjectViewModel(project) : null;
     }
 
     public async Task<IEnumerable<ProjectViewModel>> GetAllProjectsAsync()
     {
-        return (await _projectRepository.ReadAllAsync()).Select(ToViewModel);
+        return (await _projectRepository.ReadAllAsync()).Select(ModelMappers.ToProjectViewModel);
     }
 
     public async Task<ProjectViewModel?> AddArticlesToProjectAsync(Ulid projectId, IEnumerable<Article> articles)
@@ -48,7 +50,7 @@ public class ProjectService
         }
 
         var updated = await _projectRepository.UpdateAsync(project);
-        return updated != null ? ToViewModel(updated) : null;
+        return updated != null ? ModelMappers.ToProjectViewModel(updated) : null;
     }
 
     public async Task<bool> DeleteProjectAsync(Ulid id)
@@ -73,7 +75,7 @@ public class ProjectService
         project.Description = projectViewModel.Description;
 
         var updated = await _projectRepository.UpdateAsync(project);
-        return updated != null ? ToViewModel(updated) : null;
+        return updated != null ? ModelMappers.ToProjectViewModel(updated) : null;
     }
 
     public async Task<ResearchQuestionsViewModel?> AddResearchQuestionAsync(Ulid projectId, AddEditResearchQuestionViewModel questionViewModel)
@@ -84,42 +86,53 @@ public class ProjectService
             return null;
         }
 
-        var question = new Question
+        var researchQuestion = new ResearchQuestion
         {
-            Text = questionViewModel.Text,
-            Definitions = questionViewModel.Definitions
+            QuestionText = questionViewModel.Text,
+            ProjectId = projectId,
         };
 
-        project.ResearchQuestions.Questions.Add(question);
+        researchQuestion.QuestionDefinitions = questionViewModel.Definitions.Select(d => new QuestionDefinition
+        {
+            Definition = d,
+            ResearchQuestionId = researchQuestion.Id
+        }).ToList();
+
+        project.ResearchQuestions.Add(researchQuestion);
         var updated = await _projectRepository.UpdateAsync(project);
-        return updated != null ? ToResearchQuestionsViewModel(updated.ResearchQuestions) : null;
+        return updated != null ? ModelMappers.ToResearchQuestionsViewModel(updated.ProjectDefinitions, updated.ResearchQuestions) : null;
     }
 
     public async Task<ResearchQuestionsViewModel?> UpdateResearchQuestionAsync(Ulid projectId, int questionIndex, AddEditResearchQuestionViewModel questionViewModel)
     {
         var project = await _projectRepository.ReadAsync(projectId);
-        if (project == null || questionIndex < 0 || questionIndex >= project.ResearchQuestions.Questions.Count)
+        if (project == null || questionIndex < 0 || questionIndex >= project.ResearchQuestions.Count)
         {
             return null;
         }
 
-        var question = project.ResearchQuestions.Questions[questionIndex];
-        question.Text = questionViewModel.Text;
-        question.Definitions = questionViewModel.Definitions;
+        var question = project.ResearchQuestions.ElementAt(questionIndex);
+        question.QuestionText = questionViewModel.Text;
+        question.QuestionDefinitions = questionViewModel.Definitions.Select(d => new QuestionDefinition
+        {
+            Definition = d,
+            ResearchQuestionId = question.Id
+        }).ToList();
 
         var updated = await _projectRepository.UpdateAsync(project);
-        return updated != null ? ToResearchQuestionsViewModel(updated.ResearchQuestions) : null;
+        return updated != null ? ModelMappers.ToResearchQuestionsViewModel(updated.ProjectDefinitions, updated.ResearchQuestions) : null;
     }
 
     public async Task<bool> DeleteResearchQuestionAsync(Ulid projectId, int questionIndex)
     {
         var project = await _projectRepository.ReadAsync(projectId);
-        if (project == null || questionIndex < 0 || questionIndex >= project.ResearchQuestions.Questions.Count)
+        if (project == null || questionIndex < 0 || questionIndex >= project.ResearchQuestions.Count)
         {
             return false;
         }
 
-        project.ResearchQuestions.Questions.RemoveAt(questionIndex);
+        var questionToRemove = project.ResearchQuestions.ElementAt(questionIndex);
+        project.ResearchQuestions.Remove(questionToRemove);
         var updated = await _projectRepository.UpdateAsync(project);
         return updated != null;
     }
@@ -132,71 +145,40 @@ public class ProjectService
             return null;
         }
 
-        project.ResearchQuestions.Definitions.Add(definition);
+        project.ProjectDefinitions.Add(new ProjectDefinition
+        {
+            Definition = definition,
+            ProjectId = projectId,
+        });
+
         var updated = await _projectRepository.UpdateAsync(project);
-        return updated != null ? ToResearchQuestionsViewModel(updated.ResearchQuestions) : null;
+        return updated != null ? ModelMappers.ToResearchQuestionsViewModel(updated.ProjectDefinitions, updated.ResearchQuestions) : null;
     }
 
     public async Task<ResearchQuestionsViewModel?> UpdateDefinitionAsync(Ulid projectId, int definitionIndex, string definition)
     {
         var project = await _projectRepository.ReadAsync(projectId);
-        if (project == null || definitionIndex < 0 || definitionIndex >= project.ResearchQuestions.Definitions.Count)
+        if (project == null || definitionIndex < 0 || definitionIndex >= project.ProjectDefinitions.Count)
         {
             return null;
         }
 
-        project.ResearchQuestions.Definitions[definitionIndex] = definition;
+        project.ProjectDefinitions.ElementAt(definitionIndex).Definition = definition;
         var updated = await _projectRepository.UpdateAsync(project);
-        return updated != null ? ToResearchQuestionsViewModel(updated.ResearchQuestions) : null;
+        return updated != null ? ModelMappers.ToResearchQuestionsViewModel(updated.ProjectDefinitions, updated.ResearchQuestions) : null;
     }
 
     public async Task<bool> DeleteDefinitionAsync(Ulid projectId, int definitionIndex)
     {
         var project = await _projectRepository.ReadAsync(projectId);
-        if (project == null || definitionIndex < 0 || definitionIndex >= project.ResearchQuestions.Definitions.Count)
+        if (project == null || definitionIndex < 0 || definitionIndex >= project.ProjectDefinitions.Count)
         {
             return false;
         }
 
-        project.ResearchQuestions.Definitions.RemoveAt(definitionIndex);
+        var projectDefinition = project.ProjectDefinitions.ElementAt(definitionIndex);
+        project.ProjectDefinitions.Remove(projectDefinition);
         var updated = await _projectRepository.UpdateAsync(project);
         return updated != null;
-    }
-    public static ProjectViewModel ToViewModel(Project project)
-    {
-        return new ProjectViewModel
-        {
-            Id = project.Id.ToString(),
-            Name = project.Name,
-            Description = project.Description,
-            Articles = project.Articles.Select(article => new ArticleViewModel
-            {
-                Title = article.Title,
-                Authors = article.Authors,
-                Year = article.Year,
-                Abstract = article.Abstract,
-                MustRead = article.MustRead,
-                Relevances = article.Relevances.Select(relevance => new RelevanceViewModel
-                {
-                    Question = relevance.Question,
-                    RelevanceScore = relevance.RelevanceScore,
-                    IsRelevant = relevance.IsRelevant
-                }).ToList()
-            }).ToList(),
-            ResearchQuestions = ToResearchQuestionsViewModel(project.ResearchQuestions)
-        };
-    }
-
-    private static ResearchQuestionsViewModel ToResearchQuestionsViewModel(ResearchQuestions researchQuestions)
-    {
-        return new ResearchQuestionsViewModel
-        {
-            Definitions = researchQuestions.Definitions,
-            Questions = researchQuestions.Questions.Select(q => new QuestionViewModel
-            {
-                Text = q.Text,
-                Definitions = q.Definitions
-            }).ToList()
-        };
     }
 }

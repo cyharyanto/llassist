@@ -63,6 +63,7 @@ public class UploadResultViewModel
 
 public class ProcessResultViewModel
 {
+    public string JobId { get; set; } = string.Empty;
     public int Progress { get; set; }
     public IList<ArticleViewModel> ProcessedArticles { get; set; } = [];
 }

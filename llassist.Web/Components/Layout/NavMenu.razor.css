@@ -16,12 +16,14 @@
 }
 
 .top-row {
-    height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    background-color: transparent;
+    border: none;
 }
 
 .navbar-brand {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
+    color: white;
+    padding: 1rem;
 }
 
 .bi {
@@ -47,8 +49,7 @@
 }
 
 .nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
+    padding: 0.5rem 0;
 }
 
     .nav-item:first-of-type {
@@ -60,22 +61,25 @@
     }
 
     .nav-item ::deep a {
-        color: #d7d7d7;
+        color: #fff;
+        opacity: 0.8;
         border-radius: 4px;
-        height: 3rem;
+        height: 2.5rem;
         display: flex;
         align-items: center;
-        line-height: 3rem;
+        padding: 0.5rem 1rem;
     }
 
 .nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.37);
+    background-color: rgba(255,255,255,0.1);
     color: white;
+    opacity: 1;
 }
 
 .nav-item ::deep a:hover {
     background-color: rgba(255,255,255,0.1);
     color: white;
+    opacity: 1;
 }
 
 .nav-scrollable {

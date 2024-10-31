@@ -10,8 +10,8 @@ public class DatabaseFixture : IDisposable
 
     private static readonly object _lock = new();
     private static bool _databaseInitialized;
-
     public Project? Project { get; }
+    public Article? Article { get; }
 
     public DatabaseFixture()
     {
@@ -28,14 +28,28 @@ public class DatabaseFixture : IDisposable
                         Id = Ulid.NewUlid(),
                         Name = "Random Project",
                         Description = "This is a randomly generated project",
-                        Articles = new List<Article>(),
-                        ResearchQuestions = new ResearchQuestions
-                        {
-                            Definitions = new List<string>(),
-                            Questions = new List<Question>()
-                        }
+                        Articles = [],
+                        ProjectDefinitions = [],
+                        ResearchQuestions = [],
                     };
                     context.Projects.Add(Project);
+
+                    Article = new Article
+                    {
+                        Id = Ulid.NewUlid(),
+                        Authors = "Test Author",
+                        Year = 2021,
+                        Title = "Test Title",
+                        DOI = "Test DOI",
+                        Link = "Test Link",
+                        Abstract = "Test Abstract",
+                        ProjectId = Project.Id,
+                        Project = Project,
+                        ArticleKeySemantics = [],
+                        ArticleRelevances = [],
+                    };
+                    context.Articles.Add(Article);
+
                     context.SaveChanges();
                 }
 
@@ -44,7 +58,7 @@ public class DatabaseFixture : IDisposable
         }
     }
 
-    public ApplicationDbContext CreateContext()
+    public static ApplicationDbContext CreateContext()
     {
         return new ApplicationDbContext(
             new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -54,14 +68,17 @@ public class DatabaseFixture : IDisposable
 
     public void CleanUp()
     {
-        using (var context = CreateContext())
+        using var context = CreateContext();
+        if (Project != null)
         {
-            if (Project != null)
-            {
-                context.Projects.Remove(Project);
-                context.SaveChanges();
-            }
+            context.Projects.Remove(Project);
         }
+        if (Article != null)
+        {
+            context.Articles.Remove(Article);
+        }
+
+        context.SaveChanges();
     }
 
     public void Dispose()
