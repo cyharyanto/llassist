@@ -50,7 +50,7 @@ internal class Program
         // Register the Services
         builder.Services.AddScoped<ProjectService>();
         builder.Services.AddScoped<ArticleService>();
-        builder.Services.AddSingleton<LLMService>(provider =>
+        builder.Services.AddScoped<LLMService>(provider =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
             var dbContext = provider.GetRequiredService<ApplicationDbContext>();
