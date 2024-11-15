@@ -62,9 +62,17 @@ public class ProjectProcessingService
         var latestJob = projectJobs.OrderByDescending(j => j.Id).First();
 
         var processedArticles = project.Articles
-            .Where(article => article.ArticleRelevances.Any(relevance => relevance.EstimateRelevanceJobId == latestJob.Id))
-            .Select(article => ModelMappers.ToArticleViewModel(article, latestJob.Id))
+            .Select(article =>
+            {
+                var filteredRelevances = article.ArticleRelevances
+                    .Where(relevance => relevance.EstimateRelevanceJobId == latestJob.Id)
+                    .ToList();
+
+                return filteredRelevances.Count != 0 ? ModelMappers.ToArticleViewModel(article, filteredRelevances) : null;
+            })
+            .Where(articleViewModel => articleViewModel != null)
             .ToList();
+
 
         return new ProcessResultViewModel
         {
