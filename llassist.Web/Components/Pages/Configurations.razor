@@ -1,0 +1,168 @@
+@page "/configurations"
+@rendermode InteractiveServer
+@using llassist.Common.ViewModels
+@inject AppSettingApiClient AppSettingClient
+@inject ILogger<Configurations> Logger
+
+<PageTitle>Configurations</PageTitle>
+
+<div class="content-card">
+    <h2>System Configurations</h2>
+    
+    <div class="mb-4">
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            Add New Configuration
+        </button>
+    </div>
+
+    @if (_settings == null)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var setting in _settings)
+                    {
+                        <tr>
+                            <td>@setting.Key</td>
+                            <td>@(setting.Key.Contains("ApiKey", StringComparison.OrdinalIgnoreCase) ? "********" : setting.Value)</td>
+                            <td>@setting.Description</td>
+                            <td class="action-buttons">
+                                <button class="btn btn-secondary" @onclick="() => ShowEditModal(setting)">Edit</button>
+                                <button class="btn btn-danger" @onclick="() => DeleteSetting(setting.Key)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_showModal)
+{
+    <div class="modal-backdrop" @onclick="CloseModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <h3>@(_editingSetting == null ? "Add New Configuration" : "Edit Configuration")</h3>
+            <EditForm Model="@_currentSetting" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="form-group">
+                    <label for="key">Key</label>
+                    <InputText id="key" class="form-control" @bind-Value="_currentSetting.Key" disabled="@(_editingSetting != null)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="value">Value</label>
+                    <InputText id="value" class="form-control" @bind-Value="_currentSetting.Value" />
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <InputText id="description" class="form-control" @bind-Value="_currentSetting.Description" />
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<AppSettingViewModel>? _settings;
+    private bool _showModal;
+    private AppSettingViewModel? _editingSetting;
+    private AppSettingViewModel _currentSetting = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        try
+        {
+            _settings = await AppSettingClient.GetAllSettingsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading settings");
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        _editingSetting = null;
+        _currentSetting = new AppSettingViewModel();
+        _showModal = true;
+    }
+
+    private void ShowEditModal(AppSettingViewModel setting)
+    {
+        _editingSetting = setting;
+        _currentSetting = new AppSettingViewModel
+        {
+            Key = setting.Key,
+            Value = setting.Value,
+            Description = setting.Description
+        };
+        _showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        _showModal = false;
+        _editingSetting = null;
+        _currentSetting = new AppSettingViewModel();
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            if (_editingSetting == null)
+            {
+                await AppSettingClient.CreateSettingAsync(_currentSetting);
+            }
+            else
+            {
+                await AppSettingClient.UpdateSettingAsync(_editingSetting.Key, _currentSetting);
+            }
+
+            await LoadSettings();
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving setting");
+        }
+    }
+
+    private async Task DeleteSetting(string key)
+    {
+        try
+        {
+            await AppSettingClient.DeleteSettingAsync(key);
+            await LoadSettings();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting setting");
+        }
+    }
+} 

@@ -59,10 +59,15 @@ public class ModelMappers
 
     private static List<ArticleViewModel> ToArticleViewModels(ICollection<Article> articles)
     {
-        return articles.Select(article => ToArticleViewModel(article, Ulid.Empty)).ToList();
+        return articles.Select(article => ToArticleViewModel(article)).ToList();
     }
 
-    public static ArticleViewModel ToArticleViewModel(Article article, Ulid jobId)
+    public static ArticleViewModel ToArticleViewModel(Article article)
+    {
+        return ToArticleViewModel(article, article.ArticleRelevances);
+    }
+
+    public static ArticleViewModel ToArticleViewModel(Article article, ICollection<ArticleRelevance> articleRelevances)
     {
         return new ArticleViewModel
         {
@@ -71,7 +76,7 @@ public class ModelMappers
             Year = article.Year,
             Abstract = article.Abstract,
             MustRead = article.MustRead,
-            Relevances = ToRelevanceViewModels(article.ArticleRelevances)
+            Relevances = ToRelevanceViewModels(articleRelevances)
         };
     }
 

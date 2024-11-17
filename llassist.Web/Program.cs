@@ -15,8 +15,9 @@ internal partial class Program
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents();
 
-        // Register HttpClient and ProjectApiClient
+        // Register HttpClient for API services
         builder.Services.AddHttpClient<ProjectApiClient>(client => client.BaseAddress = new Uri("http+https://apiservice"));
+        builder.Services.AddHttpClient<AppSettingApiClient>(client => client.BaseAddress = new Uri("http+https://apiservice"));
 
         var app = builder.Build();
 

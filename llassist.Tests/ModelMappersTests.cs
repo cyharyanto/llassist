@@ -117,10 +117,9 @@ public class ModelMappersTests
                 new ArticleRelevance { Question = "Q2", RelevanceScore = 0.7, IsRelevant = false }
             }
         };
-        var jobId = Ulid.NewUlid();
 
         // Act
-        var result = ModelMappers.ToArticleViewModel(article, jobId);
+        var result = ModelMappers.ToArticleViewModel(article);
 
         // Assert
         Assert.Equal(article.Title, result.Title);

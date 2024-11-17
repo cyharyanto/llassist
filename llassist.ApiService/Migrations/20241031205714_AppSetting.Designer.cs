@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using llassist.ApiService.Repositories;
@@ -11,9 +12,11 @@ using llassist.ApiService.Repositories;
 namespace llassist.ApiService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241031205714_AppSetting")]
+    partial class AppSetting
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,30 +24,6 @@ namespace llassist.ApiService.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("llassist.Common.Models.AppSetting", b =>
-                {
-                    b.Property<string>("Key")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Key");
-
-                    b.ToTable("AppSettings", (string)null);
-                });
 
             modelBuilder.Entity("llassist.Common.Models.Article", b =>
                 {
@@ -392,6 +371,30 @@ namespace llassist.ApiService.Migrations
                 {
                     b.Navigation("QuestionDefinitions");
                 });
+
+            modelBuilder.Entity("llassist.Common.Models.AppSetting", b =>
+            {
+                b.Property<string>("Key")
+                    .HasColumnType("character varying(100)")
+                    .HasMaxLength(100);
+
+                b.Property<string>("Value")
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.Property<string>("Description")
+                    .HasColumnType("text");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone");
+
+                b.Property<DateTime?>("UpdatedAt")
+                    .HasColumnType("timestamp with time zone");
+
+                b.HasKey("Key");
+
+                b.ToTable("AppSettings", (string)null);
+            });
 #pragma warning restore 612, 618
         }
     }

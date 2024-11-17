@@ -50,20 +50,28 @@ internal class Program
         // Register the Services
         builder.Services.AddScoped<ProjectService>();
         builder.Services.AddScoped<ArticleService>();
-        builder.Services.AddSingleton<LLMService>(provider =>
+        builder.Services.AddScoped<LLMService>(provider =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
-            var openAIAPIKey = configuration["OpenAI:ApiKey"] ??
+            var dbContext = provider.GetRequiredService<ApplicationDbContext>();
+            
+            // Try to get API key from database first
+            var apiKeyConfig = dbContext.AppSettings
+                .FirstOrDefault(c => c.Key == "OpenAI:ApiKey");
+            
+            var openAIAPIKey = apiKeyConfig?.Value ?? 
+                configuration["OpenAI:ApiKey"] ??
                 Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 
             if (string.IsNullOrEmpty(openAIAPIKey))
             {
-                throw new InvalidOperationException("OpenAI API key not found in configuration or environment variables");
+                throw new InvalidOperationException("OpenAI API key not found in database, configuration or environment variables");
             }
 
             return new LLMService(openAIAPIKey);
         });
         builder.Services.AddScoped<INLPService, NLPService>();
+        builder.Services.AddScoped<IAppSettingService, AppSettingService>();
 
         // Register the Controllers
         builder.Services.AddControllers();
