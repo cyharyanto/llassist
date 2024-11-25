@@ -18,6 +18,8 @@ using DotNetWorkQueue.Queue;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Text.Json;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 
 internal class Program
 {
@@ -88,7 +90,25 @@ internal class Program
         var backgroundTaskExecutor = app.Services.GetRequiredService<BackgroundTaskExecutor>();
 
         // Configure the HTTP request pipeline.
-        app.UseExceptionHandler();
+        app.UseExceptionHandler(errorApp =>
+        {
+            errorApp.Run(async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                context.Response.ContentType = "application/problem+json";
+                
+                var exception = context.Features.Get<IExceptionHandlerFeature>();
+                if (exception != null)
+                {
+                    await context.Response.WriteAsJsonAsync(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status500InternalServerError,
+                        Title = "An unexpected error occurred",
+                        Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1"
+                    });
+                }
+            });
+        });
 
         // Enable routing
         app.UseRouting();
