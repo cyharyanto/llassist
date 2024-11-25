@@ -1,6 +1,7 @@
 ﻿@page "/project-list"
 @rendermode InteractiveServer
 @inject ProjectApiClient ProjectApiClient
+@inject ArticleApiClient ArticleApiClient
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 
@@ -79,6 +80,7 @@ else
                 <th style="width: 10%">Year</th>
                 <th>Abstract</th>
                 <th style="width: 100px" class="text-center">Must Read</th>
+                <th style="width: 50px" class="text-center">Action</th>
             </tr>
         </thead>
         <tbody>
@@ -97,6 +99,13 @@ else
                         <div class="must-read-indicator @(article.MustRead ? "must-read-true" : "must-read-false")">
                             @(article.MustRead ? "Yes" : "No")
                         </div>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-danger"
+                                @onclick="() => DeleteArticle(selectedProjectId, article.Id)" 
+                                @onclick:stopPropagation="true">
+                            Delete
+                        </button>
                     </td>
                 </tr>
             }
@@ -304,5 +313,11 @@ else if (!string.IsNullOrEmpty(selectedProjectId))
                 await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, Convert.ToBase64String(fileBytes));
             }
         }
+    }
+
+    private async Task DeleteArticle(string projectId, string articleId)
+    {
+        await ArticleApiClient.DeleteArticleAsync(projectId, articleId);
+        await LoadProjectDetails();
     }
 }

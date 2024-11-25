@@ -29,6 +29,7 @@ public class ProjectViewModel
 
 public class ArticleViewModel
 {
+    public string Id { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Authors { get; set; } = string.Empty;
     public int Year { get; set; } = 0;

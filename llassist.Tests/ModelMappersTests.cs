@@ -122,6 +122,7 @@ public class ModelMappersTests
         var result = ModelMappers.ToArticleViewModel(article);
 
         // Assert
+        Assert.Equal(article.Id.ToString(), result.Id);
         Assert.Equal(article.Title, result.Title);
         Assert.Equal(article.Authors, result.Authors);
         Assert.Equal(article.Year, result.Year);
