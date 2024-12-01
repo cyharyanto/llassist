@@ -12,6 +12,7 @@ public interface IAppSettingService
     Task<AppSettingViewModel> CreateSettingAsync(AppSettingViewModel setting);
     Task<AppSettingViewModel?> UpdateSettingAsync(string key, AppSettingViewModel setting);
     Task<bool> DeleteSettingAsync(string key);
+    Task<Dictionary<string, AppSettingViewModel>> SearchAsync(SearchAppSettingViewModel searchSpec);
 } 
 
 public class AppSettingService : IAppSettingService
@@ -72,6 +73,29 @@ public class AppSettingService : IAppSettingService
         _context.AppSettings.Remove(setting);
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<Dictionary<string, AppSettingViewModel>> SearchAsync(SearchAppSettingViewModel searchSpec)
+    {
+        IQueryable<AppSetting> query = _context.AppSettings;
+        bool hasSearchQuery = false;
+
+        if (searchSpec.Keys != null && searchSpec.Keys.Any())
+        {
+            query = query.Where(s => searchSpec.Keys.Contains(s.Key));
+            hasSearchQuery = true;
+        }
+
+        if (!hasSearchQuery)
+        {
+            return [];
+        }
+
+        return await query
+            .ToDictionaryAsync(
+                s => s.Key,
+                s => ToDTO(s)
+            );
     }
 
     private static AppSettingViewModel ToDTO(AppSetting setting) => new()

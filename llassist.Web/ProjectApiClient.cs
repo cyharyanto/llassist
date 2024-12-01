@@ -1,4 +1,6 @@
-﻿using llassist.Common.ViewModels;
+﻿using llassist.Common.Models;
+using llassist.Common.Validators;
+using llassist.Common.ViewModels;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace llassist.Web;
@@ -6,10 +8,14 @@ namespace llassist.Web;
 public class ProjectApiClient
 {
     private readonly HttpClient _httpClient;
+    private readonly AppSettingApiClient _appSettingApiClient;
 
-    public ProjectApiClient(HttpClient httpClient)
+    public ProjectApiClient(
+        HttpClient httpClient,
+        AppSettingApiClient appSettingApiClient)
     {
         _httpClient = httpClient;
+        _appSettingApiClient = appSettingApiClient;
     }
 
     public async Task<ProjectViewModel?> CreateProjectAsync(CreateEditProjectViewModel createProject)
@@ -45,8 +51,18 @@ public class ProjectApiClient
 
     public async Task<ProjectViewModel?> UploadCSVAsync(string projectId, IBrowserFile file)
     {
+        var uploadSettings = await _appSettingApiClient.GetFileUploadSettingsAsync();
+        var validationResult = FileValidator.ValidateFile(
+            file.Name,
+            file.Size,
+            uploadSettings
+        );
+
+        if (!validationResult.IsValid)
+            throw new InvalidOperationException(validationResult.ErrorMessage);
+
         using var content = new MultipartFormDataContent();
-        using var fileStream = file.OpenReadStream();
+        using var fileStream = file.OpenReadStream(maxAllowedSize: uploadSettings.MaxSizeBytes);
         var streamContent = new StreamContent(fileStream);
         content.Add(streamContent, "file", file.Name);
 

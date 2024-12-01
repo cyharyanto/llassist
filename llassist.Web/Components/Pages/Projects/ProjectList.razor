@@ -2,11 +2,15 @@
 @rendermode InteractiveServer
 @inject ProjectApiClient ProjectApiClient
 @inject ArticleApiClient ArticleApiClient
+@inject AppSettingApiClient AppSettingApiClient
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject IOptions<FileUploadSettings> FileUploadSettings
 
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Options
+@using llassist.Common.Models
 
 <PageTitle>Projects</PageTitle>
 
@@ -57,16 +61,31 @@ else
 {
     <div class="content-card">
         <h4>Upload Papers for @selectedProjectName</h4>
-        <div class="file-upload-area">
-            <InputFile @key="inputFileKey" OnChange="HandleFileSelected" class="d-none" id="fileInput" />
-            <label for="fileInput" class="mb-0 w-100">
-                <div class="text-center">
-                    <i class="bi bi-cloud-upload fs-2 mb-2"></i>
-                    <p class="mb-1">Upload a file or drag and drop</p>
-                    <p class="text-muted small">CSV, RIS, or BibTeX up to 10MB</p>
-                </div>
-            </label>
-        </div>
+        @if (uploadSettings != null)
+        {
+            <div class="file-upload-area">
+                <InputFile @key="inputFileKey" OnChange="HandleFileSelected" class="d-none" id="fileInput" />
+                <label for="fileInput" class="mb-0 w-100">
+                    <div class="text-center">
+                        <i class="bi bi-cloud-upload fs-2 mb-2"></i>
+                        <p class="mb-1">@(isUploading ? "Uploading..." : "Upload a file or drag and drop")</p>
+                        <p class="text-muted small">
+                            @string.Join(", ", uploadSettings.AllowedExtensions) up to @uploadSettings.MaxSizeMB MB
+                        </p>
+                        @if (!string.IsNullOrEmpty(uploadError))
+                        {
+                            <p class="text-danger small">@uploadError</p>
+                        }
+                    </div>
+                </label>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning" role="alert">
+                File upload is currently unavailable. Please try again later.
+            </div>
+        }
     </div>
 }
 
@@ -214,15 +233,28 @@ else if (!string.IsNullOrEmpty(selectedProjectId))
     private string? selectedProjectId;
     private string? selectedProjectName;
     private string inputFileKey = Guid.NewGuid().ToString();
+    private FileUploadSettings? uploadSettings;
+    private bool isUploading;
+    private string uploadError = string.Empty;
 
     protected override async Task OnInitializedAsync()
-    {
-        await LoadProjects();
+    {      
+        var tasks = new[]
+        {
+            LoadProjects(),
+            LoadFileUploadSettings()
+        };
+        await Task.WhenAll(tasks);
     }
 
     private async Task LoadProjects()
     {
         projects = await ProjectApiClient.GetAllProjectsAsync();
+    }
+
+    private async Task LoadFileUploadSettings()
+    {
+        uploadSettings = await AppSettingApiClient.GetFileUploadSettingsAsync();
     }
 
     private void CreateProject()
@@ -278,16 +310,42 @@ else if (!string.IsNullOrEmpty(selectedProjectId))
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
-        if (e.File != null && !string.IsNullOrEmpty(selectedProjectId))
+        uploadError = string.Empty;  // Clear error on new attempt
+
+        if (e.File == null || string.IsNullOrEmpty(selectedProjectId))
         {
-            var file = e.File;
+            uploadError = "No file selected or no project selected";
+            return;
+        }
+
+        await UploadFile(e.File);
+    }
+
+    private async Task UploadFile(IBrowserFile file)
+    {
+        try
+        {
+            isUploading = true;
             var result = await ProjectApiClient.UploadCSVAsync(selectedProjectId, file);
+            
             if (result != null)
             {
                 articles = result.Articles;
-                StateHasChanged();
-                inputFileKey = Guid.NewGuid().ToString(); // Change the key to reset the file input
+                inputFileKey = Guid.NewGuid().ToString();
+                uploadError = string.Empty;  // Clear error after successful upload
             }
+            else
+            {
+                uploadError = "Upload failed. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
         }
     }
 

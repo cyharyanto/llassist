@@ -56,4 +56,11 @@ public class AppSettingsController : ControllerBase
         if (!result) return NotFound();
         return NoContent();
     }
+
+    [HttpPost("search")]
+    public async Task<ActionResult<Dictionary<string, AppSettingViewModel>>> Search(SearchAppSettingViewModel searchSpec)
+    {
+        var settings = await _settingService.SearchAsync(searchSpec);
+        return Ok(settings);
+    }
 } 
