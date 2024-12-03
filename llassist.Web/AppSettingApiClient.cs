@@ -1,3 +1,4 @@
+using llassist.Common.Models;
 using llassist.Common.ViewModels;
 
 namespace llassist.Web;
@@ -40,5 +41,24 @@ public class AppSettingApiClient
     {
         var response = await _httpClient.DeleteAsync($"api/appsettings/{key}");
         response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<Dictionary<string, AppSettingViewModel>> GetSessionSettingsAsync()
+    {
+        var searchSpec = SearchAppSettingViewModel.CreateForFrontEndSession();
+        var response = await _httpClient.PostAsJsonAsync("api/appsettings/search", searchSpec);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<Dictionary<string, AppSettingViewModel>>();
+        return result ?? new Dictionary<string, AppSettingViewModel>();
+    }
+
+    public async Task<FileUploadSettings> GetFileUploadSettingsAsync()
+    {
+        var sessionSettings = await GetSessionSettingsAsync();
+
+        return FileUploadSettings.Create(
+            sessionSettings.GetValueOrDefault(AppSettingKeys.FileUploadMaxFileMB)?.Value,
+            sessionSettings.GetValueOrDefault(AppSettingKeys.FileUploadAllowedExtensions)?.Value
+        );
     }
 } 

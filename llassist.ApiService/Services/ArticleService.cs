@@ -8,11 +8,20 @@ using llassist.Common.Models;
 using llassist.Common.Mappers;
 using llassist.Common.ViewModels;
 using System.Globalization;
+using llassist.ApiService.Repositories.Specifications;
+using llassist.Common;
 
 namespace llassist.ApiService.Services;
 
 public class ArticleService
 {
+    private readonly ICRUDRepository<Ulid, Article, ArticleSearchSpec> _articleRepository;
+
+    public ArticleService(ICRUDRepository<Ulid, Article, ArticleSearchSpec> articleRepository)
+    {
+        _articleRepository = articleRepository;
+    }
+
     public static IList<Article> ReadArticlesFromCsv(TextReader reader, Ulid projectId)
     {
         var csvConfig = new CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
@@ -173,5 +182,10 @@ public class ArticleService
         }
 
         return memoryStream.ToArray();
+    }
+
+    public async Task<bool> DeleteArticleAsync(Ulid articleId)
+    {
+        return await _articleRepository.DeleteAsync(articleId);
     }
 }

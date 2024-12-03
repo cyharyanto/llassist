@@ -1,5 +1,6 @@
 using llassist.Web;
 using llassist.Web.Components;
+using Microsoft.AspNetCore.Http.Features;
 
 internal partial class Program
 {
@@ -18,7 +19,7 @@ internal partial class Program
         // Register HttpClient for API services
         builder.Services.AddHttpClient<ProjectApiClient>(client => client.BaseAddress = new Uri("http+https://apiservice"));
         builder.Services.AddHttpClient<AppSettingApiClient>(client => client.BaseAddress = new Uri("http+https://apiservice"));
-
+        builder.Services.AddHttpClient<ArticleApiClient>(client => client.BaseAddress = new Uri("http+https://apiservice"));
         var app = builder.Build();
 
         if (!app.Environment.IsDevelopment())

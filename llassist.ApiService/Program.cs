@@ -18,6 +18,8 @@ using DotNetWorkQueue.Queue;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Text.Json;
+using Microsoft.AspNetCore.Diagnostics;
+using llassist.Common.Models.Responses;
 
 internal class Program
 {
@@ -57,7 +59,7 @@ internal class Program
             
             // Try to get API key from database first
             var apiKeyConfig = dbContext.AppSettings
-                .FirstOrDefault(c => c.Key == "OpenAI:ApiKey");
+                .FirstOrDefault(c => c.Key == AppSettingKeys.OpenAIApiKey);
             
             var openAIAPIKey = apiKeyConfig?.Value ?? 
                 configuration["OpenAI:ApiKey"] ??
@@ -88,7 +90,27 @@ internal class Program
         var backgroundTaskExecutor = app.Services.GetRequiredService<BackgroundTaskExecutor>();
 
         // Configure the HTTP request pipeline.
-        app.UseExceptionHandler();
+        app.UseExceptionHandler(errorApp =>
+        {
+            errorApp.Run(async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                context.Response.ContentType = "application/json";
+                
+                var exception = context.Features.Get<IExceptionHandlerFeature>();
+                if (exception != null)
+                {
+                    var error = new ApiErrorResponse
+                    {
+                        HttpStatusCode = context.Response.StatusCode,
+                        Message = "An unexpected error occurred",
+                        Details = exception.Error.Message,
+                        Timestamp = DateTime.UtcNow
+                    };
+                    await context.Response.WriteAsJsonAsync(error);
+                }
+            });
+        });
 
         // Enable routing
         app.UseRouting();
