@@ -1,100 +1,134 @@
 # LLAssist
 
-LLAssist is a tool for processing and analyzing research articles using Natural Language Processing (NLP) techniques and Large Language Models (LLMs).
+Research authoring environment for systematic literature reviews. Import bibliographic data, screen articles against research questions using LLMs, explore field-level gaps, and render report sections from live analysis.
 
-Note:
-- The paper with title [LLAssist: Simple Tools for Automating Literature Review Using Large Language Models](https://doi.org/10.48550/arXiv.2407.13993) uses [commit versions prior to `07caad7`](https://github.com/cyharyanto/llassist/tree/07caad7d954f9e64933ffa5aa34d0b745006feea), specifically [commit `3bf51a6`](https://github.com/cyharyanto/llassist/tree/3bf51a695b945e07c77eaa0a323c9aa3e57372bd).
+Runs entirely in the browser. No server required.
 
-## Features
+## Versions
 
-- Read articles from CSV files
-- Extract key semantics (topics, entities, keywords) from article titles and abstracts
-- Estimate relevance of articles to research questions
-- Generate embeddings for keywords
-- Output results in both JSON and CSV formats
+| Version | Stack | Branch/Tag |
+|---------|-------|------------|
+| **Current** (v2 — browser SPA) | Preact, Vite, IndexedDB | [`main`](https://github.com/ZipThought/llassist) |
+| **Legacy** (v0.1 — .NET server) | C#, Blazor, PostgreSQL, Docker | [`archive/dotnet-v0.1`](https://github.com/ZipThought/llassist/tree/archive/dotnet-v0.1) |
 
-## Components
+> The v0.1 .NET version is archived and no longer actively developed. See the [v0.1 README](https://github.com/ZipThought/llassist/tree/archive/dotnet-v0.1#readme) for setup and usage of that version.
+>
+> The paper [LLAssist: Simple Tools for Automating Literature Review Using Large Language Models](https://doi.org/10.48550/arXiv.2407.13993) refers to the v0.1 .NET codebase.
 
-### Program.cs
+## Quick Start
 
-The main entry point of the application. It orchestrates the process of:
-1. Reading articles from a CSV file
-2. Processing each article to extract semantics and estimate relevance
-3. Writing results incrementally to a CSV file
-4. Generating a final JSON output
+```bash
+npm install
+npm run dev
+```
 
-### Services
-
-#### NLPService
-
-Handles Natural Language Processing tasks:
-- Extracting key semantics from text
-- Estimating relevance of content to research questions
-- Generating embeddings for keywords
-
-#### LLMService
-
-Manages connections to various Large Language Models:
-- Ollama Gemma 2 (local)
-- GPT-3.5 Turbo (OpenAI)
-- GPT-4 (OpenAI)
-- Text Embedding model (OpenAI)
-
-#### ArticleService
-
-Handles file I/O operations:
-- Reading articles from CSV files
-- Writing articles to JSON files
-- Writing results to CSV files
+Open `http://localhost:5173`.
 
 ## Usage
 
-### Console Mode
+### 1. Create a Project
 
+Launch LLAssist → enter a project name → **New Project**.
+
+### 2. Configure a Provider
+
+**Settings** tab → **+ Add provider**.
+
+| Field | Example |
+|-------|---------|
+| Label | `my-openai` |
+| Type | OpenAI / compatible |
+| Base URL | `https://api.openai.com/v1` |
+| Model | `gpt-4o-mini` |
+| Input $/M tokens | `0.15` |
+| Output $/M tokens | `0.60` |
+
+Enter your API key and click **Save key**. The key stays in your browser (IndexedDB) and is never included in project files.
+
+For Ollama: set type to Ollama, base URL to `http://localhost:11434/v1`, no API key needed.
+
+### 3. Import Articles
+
+**Library** tab → **Import** → select a `.csv`, `.bib`, or `.ris` file → choose provider → **Start Import**.
+
+Articles appear in the Library as they are processed. Each record is sent to the LLM for semantic parsing into a canonical format.
+
+### 4. Define Protocol & Screen
+
+**Analyze** tab → add research questions → select provider → **Create Protocol** → **Start Screening**.
+
+Each article is screened in two phases:
+- Phase 1: extract key semantics (topics, entities, keywords)
+- Phase 2: estimate relevance and contribution per research question
+
+### 5. Explore Results
+
+After screening completes, the results panel shows:
+- **Threshold slider** — adjust inclusion threshold; all counts update instantly with zero network calls
+- **Stats** — total, relevant, contributing, must-read counts
+- **Per-RQ distribution** — which questions are underserved
+- **Article list** — sorted by relevance, click to drill into per-RQ reasoning
+
+### 6. Render Report Sections
+
+**Report** tab → **+ Add Section** → write a prompt describing what the section should contain → **Render**.
+
+The LLM has access to tools that query your screening data (assessment stats, article details, RQ distributions). It calls these tools, gathers data, and produces a markdown section.
+
+Example prompt:
+> Summarize the distribution of relevant papers across all research questions. Identify which questions are underserved and discuss temporal trends.
+
+### 7. Save & Share
+
+**Ctrl+S** (or **Save** button) downloads a `.llassist` file containing the entire project: articles, assessments, protocols, rendered sections — everything except API keys and PDF content.
+
+Open the file in any browser running LLAssist to resume work.
+
+### 8. Export
+
+**Library** tab → **BibTeX↓** or **RIS↓** exports articles in the current folder (or all articles if the folder is empty) as standard bibliographic formats.
+
+## Hosting
+
+### Local Development
+
+```bash
+npm install
+npm run dev
 ```
-dotnet run --project llassist.AppConsole <input_csv_file> <research_questions_file>
+
+### Local Production Preview
+
+```bash
+npm run build
+npm run preview
 ```
 
-Where:
-- `<input_csv_file>` is the path to the CSV file containing the articles
-- `<research_questions_file>` is the path to a text file containing the research questions (one per line)
+Or without Node.js:
 
-### Web Application
-
-Run docker compose in the root directory
-```
-docker-compose up -d
+```bash
+npm run build
+cd dist && python3 -m http.server 8080
 ```
 
-Run DB migrations in ApiService dir
-```
-dotnet ef database update
-```
+The `start.sh` and `start.bat` scripts automate this fallback chain.
 
+### GitHub Pages
 
-## Output
+1. Push the repository to GitHub
+2. Go to **Settings → Pages → Source** → select **GitHub Actions**
+3. Push to `main` — the included workflow (`.github/workflows/deploy.yml`) builds and deploys automatically
 
-The program generates two output files:
-1. A JSON file (`<input_filename>-result.json`) containing all processed articles with their semantics and relevance scores
-2. A CSV file (`<input_filename>-result.csv`) with the same information in a tabular format
+The site will be available at `https://<username>.github.io/<repo-name>/`.
 
-## Dependencies
+## Browser Requirements
 
-- Microsoft.SemanticKernel
-- CsvHelper
-- Microsoft.Extensions.Logging
+Chrome 90+, Firefox 90+, Edge 90+, Safari 15+. Requires IndexedDB, Fetch API, and `crypto.randomUUID()`.
 
-## Notes
+## Project File Format
 
-- The program uses a local Ollama instance for the Gemma 2 model. Ensure it's running on `http://localhost:11434` before executing the program.
-- OpenAI API key is required for GPT models and embeddings. Set it in the `LLMService` constructor.
+`.llassist` files are ZIP archives containing JSON/JSONL with canonical serialization (sorted keys, deterministic output). See `SPECIFICATION.md` for the full file structure.
 
-## Disclaimer
+## License
 
-This tool is for research purposes. Ensure you have the necessary rights and permissions to process and analyze the articles.
-
-## Licensing
-1. This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
-2. This project is a fork of llassist, which was originally MIT licensed. The original MIT-licensed code has been incorporated into this project. As per the terms of the MIT license, we have included the original MIT license text and copyright notice in our NOTICE file.
-3. All modifications and additions to the original code, as well as the project as a whole, are licensed under AGPL-3.0.
-4. For full license text and attribution details, please see the LICENSE and NOTICE files.
+MIT
