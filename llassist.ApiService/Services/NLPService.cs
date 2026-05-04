@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Diagnostics;
 
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel;
@@ -28,11 +29,29 @@ public class NLPService : INLPService
     // Common method to interact with LLM Service
     private async Task<string> InvokeLLMServiceAsync(Kernel kernel, string skPrompt, OpenAIPromptExecutionSettings executionSettings, KernelArguments parameters)
     {
+        using var activity = AIInstrumentation.ActivitySource.StartActivity("semantic_kernel.chat", ActivityKind.Client);
+        activity?.SetTag("gen_ai.system", "openai");
+        activity?.SetTag("gen_ai.request.model", "gpt-4o");
+        activity?.SetTag("gen_ai.request.max_tokens", executionSettings.MaxTokens);
+        activity?.SetTag("gen_ai.request.temperature", executionSettings.Temperature);
+        activity?.SetTag("gen_ai.request.top_p", executionSettings.TopP);
+        activity?.SetTag("gen_ai.response.format", executionSettings.ResponseFormat?.ToString());
+
         _logger.LogDebug($"Sending prompt to LLM:\n{skPrompt}");
-        var function = kernel.CreateFunctionFromPrompt(skPrompt, executionSettings);
-        var response = await kernel.InvokeAsync(function, parameters);
-        _logger.LogDebug($"Response from LLM:\n{response}");
-        return (response?.GetValue<string>() ?? string.Empty).Trim();
+        try
+        {
+            var function = kernel.CreateFunctionFromPrompt(skPrompt, executionSettings);
+            var response = await kernel.InvokeAsync(function, parameters);
+            _logger.LogDebug($"Response from LLM:\n{response}");
+            activity?.SetStatus(ActivityStatusCode.Ok);
+            return (response?.GetValue<string>() ?? string.Empty).Trim();
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
+            throw;
+        }
     }
 
     private string GetJsonTemplate<T>() where T : new()
@@ -164,6 +183,11 @@ Return the result in the following JSON format:
     {
         var embeddingsService = _llmService.TextEmbedding3Small(dimensions);
         var embeddingsDictionary = new Dictionary<string, float[]>();
+        using var activity = AIInstrumentation.ActivitySource.StartActivity("openai.embeddings", ActivityKind.Client);
+        activity?.SetTag("gen_ai.system", "openai");
+        activity?.SetTag("gen_ai.request.model", "text-embedding-3-small");
+        activity?.SetTag("llassist.embedding.dimensions", dimensions);
+        activity?.SetTag("llassist.embedding.keyword_count", keywords.Length);
 
         try
         {
@@ -175,9 +199,12 @@ Return the result in the following JSON format:
                 embedding.Span.CopyTo(embeddingArray);
                 embeddingsDictionary[keywords[i]] = embeddingArray;
             }
+            activity?.SetStatus(ActivityStatusCode.Ok);
         }
         catch (Exception ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddException(ex);
             _logger.LogError($"Failed to generate embeddings: {ex.Message}");
         }
 
